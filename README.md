@@ -1,6 +1,8 @@
 A collection of utility nodes designed to bring dynamic logic and flexible selection to your ComfyUI workflows.
 
-![Overview](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/logo.png)
+<p align="center">
+<img src="https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/logo.png" alt="Logo" style="display: block; margin: 0 auto; text-align: center;">
+</p>
 
 ## Nodes Included
 
