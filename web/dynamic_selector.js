@@ -29,8 +29,8 @@ function validateSelection(widget, node) {
     widget.options.disabled_decrement = clamped <= minIndex;
 
     if (app.graph)
-        app.graph._version++;
-    app.graph.setDirtyCanvas(true, true);
+        // app.graph._version++;
+    app.graph.setDirtyCanvas(true);
 }
 
 function updateWidgetAvailability(node, widget, visible, available) {
@@ -39,10 +39,10 @@ function updateWidgetAvailability(node, widget, visible, available) {
     const enabled = available ?? visible;
     widget.hidden = !visible;
     widget.disabled = !enabled;
-    const input = node.inputs.find(i => i.name === widget.name);
-    input.hidden = !visible;
-    input.disabled = !enabled;
-    app.graph.setDirtyCanvas(true, true);
+    // const input = node.inputs.find(i => i.name === widget.name);
+    // input.hidden = !visible;
+    // input.disabled = !enabled;
+    app.graph.setDirtyCanvas(true);
 }
 
 app.registerExtension({
@@ -93,15 +93,15 @@ app.registerExtension({
             requestAnimationFrame(() => {
                 updateBoolWidgtsAvailability();
 
-                // Reset all the ports to wildcards if nothing is connected.
+                // Reset all the ports to wildcards if no inputs are connected.
                 const wildcard = "*";
-                const isOutputUnconnected = !this.outputs[0].links || this.outputs[0].links.length === 0;
+                const hasAnyConnectedInput = this.inputs.some(input => input.name.startsWith("input_") && input.link != null && this.graph?.links?.[input.link]);
 
-                if (isOutputUnconnected) {
+                if (!hasAnyConnectedInput) {
                     let hasCleanedAnyInput = false;
 
                     this.inputs?.forEach(input => {
-                        const hasNoLink = input.link === null || input.link === undefined || !this.graph.links[input.link];
+                        const hasNoLink = input.link === null || input.link === undefined || !this.graph?.links?.[input.link];
                         
                         if (input.name.startsWith("input_") && hasNoLink) {
                             input.type = wildcard;
@@ -109,7 +109,7 @@ app.registerExtension({
                         }
                     });
 
-                    if (hasCleanedAnyInput || isOutputUnconnected) {
+                    if (hasCleanedAnyInput) {
                         this.outputs[0].type = wildcard;
                     }
                 }
@@ -146,13 +146,9 @@ app.registerExtension({
         nodeType.prototype.onConnectInput = function(targetSlot, type, output, originNode, originSlot) {
             const input = this.inputs[targetSlot];
             if (input.name.startsWith("input_")) {
-                if (input.name !== "input_0" && this.inputs.length > 0) {
-                    const input0 = this.inputs.find(i => i.name === "input_0");
-                    if (input0 && input0.type !== "*" && input0.link) {
-                        if (type !== input0.type && type !== "*") {
-                            return false;
-                        }
-                    }
+                const outputType = this.outputs[0].type;
+                if (outputType !== "*" && type !== outputType && type !== "*") {
+                    return false;
                 }
             } else {
                 if (input.widget && input.widget.name) {
@@ -165,63 +161,66 @@ app.registerExtension({
             return onConnectInput?.apply(this, arguments);
         };
 
-        // Update output type based on input_0
+        // Update output type based on first connected input
         const onConnectionsChange = nodeType.prototype.onConnectionsChange;
         nodeType.prototype.onConnectionsChange = function(type, slotIndex, isConnected, link, ioSlot) {
             const r = onConnectionsChange?.apply(this, arguments);
             if (type === 1) { // Input connection changed
-                const input0 = this.inputs?.find(i => i.name === "input_0");
-                const wildcard = "*";
-                if (input0 && input0.link) {
-                    const linkInfo = this.graph.links[input0.link];
-                    if (linkInfo) {
-                        const originNode = this.graph.getNodeById(linkInfo.origin_id);
-                        const originOutput = originNode.outputs[linkInfo.origin_slot];
-                        const inputType = originOutput.type;
-                        if (this.outputs[0].type !== inputType) {
-                            this.outputs[0].type = inputType;
-                            if (this.outputs[0].links && this.outputs[0].links.length > 0) {
-                                const linksToDisconnect = [];
-                                for (const linkId of this.outputs[0].links) {
-                                    const outputLinkInfo = this.graph.links[linkId];
-                                    if (outputLinkInfo) {
-                                        const targetNode = this.graph.getNodeById(outputLinkInfo.target_id);
-                                        const targetInput = targetNode.inputs[outputLinkInfo.target_slot];
-                                        if (targetInput.type !== inputType && targetInput.type !== wildcard && inputType !== wildcard) {
-                                            linksToDisconnect.push(linkId);
-                                        }
-                                    }
-                                }
-                                for (const linkId of linksToDisconnect) {
-                                    this.graph.removeLink(linkId);
-                                }
-                            }
-                        }
-                        for (let i = 0; i < this.inputs.length; i++) {
-                            const curInput = this.inputs[i];
-                            if (curInput.name.startsWith("input_")) {
-                                if (curInput.type !== inputType) {
-                                    curInput.type = inputType;
-                                    if (curInput.link != null) {
-                                        const connectedLinkInfo = this.graph.links[curInput.link];
-                                        if (connectedLinkInfo) {
-                                            const connectedNode = this.graph.getNodeById(connectedLinkInfo.origin_id);
-                                            const connectedOutput = connectedNode.outputs[connectedLinkInfo.origin_slot];
-                                            if (connectedOutput.type !== inputType && connectedOutput.type !== wildcard) {
-                                                this.disconnectInput(i);
+                const input = this.inputs[slotIndex];
+                if (input && input.name.startsWith("input_")) {
+                    const wildcard = "*";
+                    const connectedInputs = this.inputs.filter(i => i.name.startsWith("input_") && i.link != null && this.graph?.links?.[i.link]);
+                    if (isConnected && this.outputs[0].type === wildcard) {
+                        // First connection attempt: set type based on this input
+                        if (this.graph?.links) {
+                            const linkInfo = this.graph.links[input.link];
+                            if (linkInfo) {
+                                const originNode = this.graph.getNodeById(linkInfo.origin_id);
+                                const originOutput = originNode.outputs[linkInfo.origin_slot];
+                                const inputType = originOutput.type;
+                                this.outputs[0].type = inputType;
+                                // Update all input types
+                                for (let i = 0; i < this.inputs.length; i++) {
+                                    const curInput = this.inputs[i];
+                                    if (curInput.name.startsWith("input_")) {
+                                        curInput.type = inputType;
+                                        if (curInput.link != null && this.graph?.links) {
+                                            const connectedLinkInfo = this.graph.links[curInput.link];
+                                            if (connectedLinkInfo) {
+                                                const connectedNode = this.graph.getNodeById(connectedLinkInfo.origin_id);
+                                                const connectedOutput = connectedNode.outputs[connectedLinkInfo.origin_slot];
+                                                if (connectedOutput.type !== inputType && connectedOutput.type !== wildcard) {
+                                                    this.disconnectInput(i);
+                                                }
                                             }
                                         }
                                     }
                                 }
+                                // Disconnect incompatible output links
+                                if (this.outputs[0].links && this.outputs[0].links.length > 0 && this.graph?.links) {
+                                    const linksToDisconnect = [];
+                                    for (const linkId of this.outputs[0].links) {
+                                        const outputLinkInfo = this.graph.links[linkId];
+                                        if (outputLinkInfo) {
+                                            const targetNode = this.graph.getNodeById(outputLinkInfo.target_id);
+                                            const targetInput = targetNode.inputs[outputLinkInfo.target_slot];
+                                            if (targetInput.type !== inputType && targetInput.type !== wildcard && inputType !== wildcard) {
+                                                linksToDisconnect.push(linkId);
+                                            }
+                                        }
+                                    }
+                                    for (const linkId of linksToDisconnect) {
+                                        this.graph.removeLink(linkId);
+                                    }
+                                }
                             }
                         }
-                    }
-                } else {
-                    if (this.outputs[0].type !== wildcard) {
+                    } else if (!isConnected && connectedInputs.length === 0) {
+                        // No inputs connected anymore, reset to wildcard
                         this.outputs[0].type = wildcard;
                         for (let i = 0; i < this.inputs.length; i++) {
                             const curInput = this.inputs[i];
-                            if (curInput.name.startsWith("input_") && curInput.type !== wildcard) {
+                            if (curInput.name.startsWith("input_")) {
                                 curInput.type = wildcard;
                             }
                         }
@@ -257,17 +256,7 @@ app.registerExtension({
                         return;
                     }
 
-                    let inputType = "*";
-                    const input0 = this.inputs.find(i => i.name === "input_0");
-
-                    if (input0 && input0.link) {
-                        const linkInfo = this.graph.links[input0.link];
-                        if (linkInfo) {
-                            const originNode = this.graph.getNodeById(linkInfo.origin_id);
-                            const originOutput = originNode.outputs[linkInfo.origin_slot];
-                            inputType = originOutput.type;
-                        }
-                    }
+                    let inputType = this.outputs[0].type;
 
                     const newIndex = allInputs.length;
                     this.addInput("input_" + newIndex, inputType);
