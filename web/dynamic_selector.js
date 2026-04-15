@@ -1,5 +1,477 @@
 import { app } from "/scripts/app.js";
 
+function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget) {
+    const allInputs = node.inputs.filter(({ name }) => name.startsWith("input_"));
+    const currentCount = allInputs.length;
+
+    // Create modal styles
+    const modalStyles = `
+        .batch-input-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
+        }
+        .batch-input-dialog {
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 400px;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+            color: #e0e0e0;
+        }
+        .batch-dialog-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+        .batch-dialog-info {
+            background: #252525;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #b0b0b0;
+        }
+        .batch-dialog-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #444;
+        }
+        .batch-dialog-tab {
+            padding: 8px 15px;
+            background: #2d2d2d;
+            border: none;
+            color: #e0e0e0;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .batch-dialog-tab.active {
+            background: #3d3d3d;
+            border-bottom: 2px solid #007acc;
+        }
+        .batch-dialog-tab:hover {
+            background: #3d3d3d;
+        }
+        .batch-dialog-content {
+            display: none;
+        }
+        .batch-dialog-content.active {
+            display: block;
+        }
+        .batch-dialog-section {
+            margin-bottom: 15px;
+        }
+        .batch-dialog-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #b0b0b0;
+            text-transform: uppercase;
+        }
+        .batch-dialog-input {
+            width: 100%;
+            padding: 8px 10px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            border-radius: 4px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+        .batch-dialog-input:focus {
+            outline: none;
+            border-color: #007acc;
+            background: #333;
+        }
+        .batch-dialog-presets {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .batch-dialog-preset-btn {
+            padding: 8px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .batch-dialog-preset-btn:hover {
+            background: #3d3d3d;
+            border-color: #007acc;
+        }
+        .batch-dialog-error {
+            background: #3d1f1f;
+            border: 1px solid #8b3333;
+            color: #ff6b6b;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        .batch-dialog-success {
+            background: #1f3d2f;
+            border: 1px solid #338b4d;
+            color: #6bff9b;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        .batch-dialog-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding-top: 15px;
+            border-top: 1px solid #444;
+        }
+        .batch-dialog-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .batch-dialog-btn-apply {
+            background: #007acc;
+            color: white;
+        }
+        .batch-dialog-btn-apply:hover {
+            background: #0098ff;
+        }
+        .batch-dialog-btn-apply:disabled {
+            background: #444;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .batch-dialog-btn-cancel {
+            background: #2d2d2d;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+        .batch-dialog-btn-cancel:hover {
+            background: #3d3d3d;
+        }
+    `;
+
+    // Inject styles if not already present
+    if (!document.getElementById("batch-input-modal-styles")) {
+        const styleElement = document.createElement("style");
+        styleElement.id = "batch-input-modal-styles";
+        styleElement.textContent = modalStyles;
+        document.head.appendChild(styleElement);
+    }
+
+    // Create modal HTML
+    const modal = document.createElement("div");
+    modal.className = "batch-input-modal";
+
+    const dialog = document.createElement("div");
+    dialog.className = "batch-input-dialog";
+
+    const title = document.createElement("div");
+    title.className = "batch-dialog-title";
+    title.textContent = "Batch Add/Remove Inputs";
+
+    const info = document.createElement("div");
+    info.className = "batch-dialog-info";
+    info.innerHTML = `Current inputs: <strong>${currentCount}</strong> / <strong>${maxInputs}</strong>`;
+
+    // Create tabs
+    const tabsContainer = document.createElement("div");
+    tabsContainer.className = "batch-dialog-tabs";
+
+    const addTab = document.createElement("button");
+    addTab.className = "batch-dialog-tab active";
+    addTab.textContent = "Add Inputs";
+    addTab.dataset.tab = "add";
+
+    const removeTab = document.createElement("button");
+    removeTab.className = "batch-dialog-tab";
+    removeTab.textContent = "Remove Inputs";
+    removeTab.dataset.tab = "remove";
+
+    tabsContainer.appendChild(addTab);
+    tabsContainer.appendChild(removeTab);
+
+    // Create content sections
+    const addContent = document.createElement("div");
+    addContent.className = "batch-dialog-content active";
+    addContent.dataset.tab = "add";
+
+    const addSection = document.createElement("div");
+    addSection.className = "batch-dialog-section";
+
+    const addLabel = document.createElement("label");
+    addLabel.className = "batch-dialog-label";
+    addLabel.textContent = "Quick Add Presets";
+
+    const addPresets = document.createElement("div");
+    addPresets.className = "batch-dialog-presets";
+
+    const presetAmounts = [5, 10, 25];
+    presetAmounts.forEach(amount => {
+        const btn = document.createElement("button");
+        btn.className = "batch-dialog-preset-btn";
+        btn.textContent = `+${amount}`;
+        btn.innerHTML = `+${amount}<br><span style="font-size: 10px; color: #888;">Result: ${currentCount + amount}</span>`;
+        btn.onclick = () => {
+            const resultCount = currentCount + amount;
+            if (resultCount > maxInputs) {
+                showAddError(`Cannot add ${amount} inputs. Would exceed maximum of ${maxInputs}.`);
+            } else {
+                performAddInputs(node, amount, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget);
+                closeModal();
+            }
+        };
+        addPresets.appendChild(btn);
+    });
+
+    addSection.appendChild(addLabel);
+    addSection.appendChild(addPresets);
+    addContent.appendChild(addSection);
+
+    // Custom add amount
+    const customAddSection = document.createElement("div");
+    customAddSection.className = "batch-dialog-section";
+
+    const customAddLabel = document.createElement("label");
+    customAddLabel.className = "batch-dialog-label";
+    customAddLabel.textContent = "Custom Amount";
+
+    const customAddInput = document.createElement("input");
+    customAddInput.type = "number";
+    customAddInput.className = "batch-dialog-input";
+    customAddInput.placeholder = "Enter number of inputs to add";
+    customAddInput.min = "1";
+    customAddInput.max = String(maxInputs - currentCount);
+    customAddInput.value = "5";
+
+    customAddSection.appendChild(customAddLabel);
+    customAddSection.appendChild(customAddInput);
+    addContent.appendChild(customAddSection);
+
+    // Remove content
+    const removeContent = document.createElement("div");
+    removeContent.className = "batch-dialog-content";
+    removeContent.dataset.tab = "remove";
+
+    const removeSection = document.createElement("div");
+    removeSection.className = "batch-dialog-section";
+
+    const removeLabel = document.createElement("label");
+    removeLabel.className = "batch-dialog-label";
+    removeLabel.textContent = "Quick Remove Presets";
+
+    const removePresets = document.createElement("div");
+    removePresets.className = "batch-dialog-presets";
+
+    const maxRemove = Math.min(25, currentCount - 1); // Keep at least 1 input
+    const removeAmounts = [5, 10, Math.min(25, maxRemove)].filter((v, i, a) => a.indexOf(v) === i && v > 0);
+
+    removeAmounts.forEach(amount => {
+        if (amount > currentCount - 1) return;
+        const btn = document.createElement("button");
+        btn.className = "batch-dialog-preset-btn";
+        btn.textContent = `-${amount}`;
+        btn.innerHTML = `-${amount}<br><span style="font-size: 10px; color: #888;">Result: ${currentCount - amount}</span>`;
+        btn.onclick = () => {
+            if (currentCount - amount < 1) {
+                showRemoveError(`Cannot remove ${amount} inputs. Must keep at least 1 input.`);
+            } else {
+                performRemoveInputs(node, amount, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget);
+                closeModal();
+            }
+        };
+        removePresets.appendChild(btn);
+    });
+
+    removeSection.appendChild(removeLabel);
+    removeSection.appendChild(removePresets);
+    removeContent.appendChild(removeSection);
+
+    // Custom remove amount
+    const customRemoveSection = document.createElement("div");
+    customRemoveSection.className = "batch-dialog-section";
+
+    const customRemoveLabel = document.createElement("label");
+    customRemoveLabel.className = "batch-dialog-label";
+    customRemoveLabel.textContent = "Custom Amount";
+
+    const customRemoveInput = document.createElement("input");
+    customRemoveInput.type = "number";
+    customRemoveInput.className = "batch-dialog-input";
+    customRemoveInput.placeholder = "Enter number of inputs to remove";
+    customRemoveInput.min = "1";
+    customRemoveInput.max = String(currentCount - 1);
+    customRemoveInput.value = "5";
+
+    customRemoveSection.appendChild(customRemoveLabel);
+    customRemoveSection.appendChild(customRemoveInput);
+    removeContent.appendChild(customRemoveSection);
+
+    // Error/success message area
+    const messageArea = document.createElement("div");
+    messageArea.id = "batch-message-area";
+
+    const showAddError = (msg) => {
+        messageArea.innerHTML = `<div class="batch-dialog-error">${msg}</div>`;
+    };
+
+    const showRemoveError = (msg) => {
+        messageArea.innerHTML = `<div class="batch-dialog-error">${msg}</div>`;
+    };
+
+    // Buttons
+    const buttonsContainer = document.createElement("div");
+    buttonsContainer.className = "batch-dialog-buttons";
+
+    const applyBtn = document.createElement("button");
+    applyBtn.className = "batch-dialog-btn batch-dialog-btn-apply";
+    applyBtn.textContent = "Apply";
+    applyBtn.onclick = () => {
+        const activeTab = document.querySelector(".batch-dialog-tab.active").dataset.tab;
+        messageArea.innerHTML = "";
+
+        if (activeTab === "add") {
+            const amount = parseInt(customAddInput.value) || 0;
+            if (amount < 1) {
+                showAddError("Please enter a valid number greater than 0.");
+                return;
+            }
+            if (currentCount + amount > maxInputs) {
+                showAddError(`Cannot add ${amount} inputs. Would exceed maximum of ${maxInputs}. Max to add: ${maxInputs - currentCount}`);
+                return;
+            }
+            performAddInputs(node, amount, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget);
+        } else {
+            const amount = parseInt(customRemoveInput.value) || 0;
+            if (amount < 1) {
+                showRemoveError("Please enter a valid number greater than 0.");
+                return;
+            }
+            if (currentCount - amount < 1) {
+                showRemoveError(`Cannot remove ${amount} inputs. Must keep at least 1 input.`);
+                return;
+            }
+            performRemoveInputs(node, amount, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget);
+        }
+        closeModal();
+    };
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.className = "batch-dialog-btn batch-dialog-btn-cancel";
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.onclick = closeModal;
+
+    buttonsContainer.appendChild(applyBtn);
+    buttonsContainer.appendChild(cancelBtn);
+
+    // Tab switching
+    const tabs = [addTab, removeTab];
+    const contents = [addContent, removeContent];
+
+    tabs.forEach((tab, index) => {
+        tab.onclick = () => {
+            tabs.forEach(t => t.classList.remove("active"));
+            contents.forEach(c => c.classList.remove("active"));
+            tab.classList.add("active");
+            contents[index].classList.add("active");
+            messageArea.innerHTML = "";
+        };
+    });
+
+    // Assemble dialog
+    dialog.appendChild(title);
+    dialog.appendChild(info);
+    dialog.appendChild(tabsContainer);
+    dialog.appendChild(addContent);
+    dialog.appendChild(removeContent);
+    dialog.appendChild(messageArea);
+    dialog.appendChild(buttonsContainer);
+
+    modal.appendChild(dialog);
+
+    function closeModal() {
+        modal.remove();
+    }
+
+    // Close on escape key
+    const handleKeyDown = (e) => {
+        if (e.key === "Escape") {
+            closeModal();
+            document.removeEventListener("keydown", handleKeyDown);
+        }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    // Close on outside click
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            closeModal();
+            document.removeEventListener("keydown", handleKeyDown);
+        }
+    };
+
+    document.body.appendChild(modal);
+}
+
+function performAddInputs(node, count, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget) {
+    let inputType = (node.outputs && node.outputs[0]) ? node.outputs[0].type : "*";
+    const allInputs = node.inputs.filter(({ name }) => name.startsWith("input_"));
+
+    for (let i = 0; i < count; i++) {
+        const newIndex = allInputs.length + i;
+        node.addInput("input_" + newIndex, inputType);
+    }
+
+    validateSelection(selectionWidget, node);
+    validateSelection(boolTrueItemIndexWidget, node);
+    validateSelection(boolFalseItemIndexWidget, node);
+}
+
+function performRemoveInputs(node, count, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget) {
+    for (let i = 0; i < count; i++) {
+        const allInputs = node.inputs.filter(({ name }) => name.startsWith("input_"));
+        if (allInputs.length <= 1) break;
+
+        const lastInput = Object.values(allInputs).reduce((a, b) =>
+            Number(a.name.match(/\d+$/)[0]) > Number(b.name.match(/\d+$/)[0]) ? a : b
+        );
+        if (lastInput) {
+            node.removeInput(node.inputs.indexOf(lastInput));
+        }
+    }
+
+    validateSelection(selectionWidget, node);
+    validateSelection(boolTrueItemIndexWidget, node);
+    validateSelection(boolFalseItemIndexWidget, node);
+}
+
 function validateSelection(widget, node) {
     let v = widget.value;
     const allInputs = node.inputs.filter(({ name }) => name.startsWith("input_"));
@@ -109,7 +581,7 @@ app.registerExtension({
                         }
                     });
 
-                    if (hasCleanedAnyInput) {
+                    if (hasCleanedAnyInput && this.outputs && this.outputs[0]) {
                         this.outputs[0].type = wildcard;
                     }
                 }
@@ -165,7 +637,7 @@ app.registerExtension({
         const onConnectionsChange = nodeType.prototype.onConnectionsChange;
         nodeType.prototype.onConnectionsChange = function(type, slotIndex, isConnected, link, ioSlot) {
             const r = onConnectionsChange?.apply(this, arguments);
-            if (type === 1) { // Input connection changed
+            if (type === 1 && this.outputs && this.outputs[0]) { // Input connection changed
                 const input = this.inputs[slotIndex];
                 if (input && input.name.startsWith("input_")) {
                     const wildcard = "*";
@@ -176,41 +648,47 @@ app.registerExtension({
                             const linkInfo = this.graph.links[input.link];
                             if (linkInfo) {
                                 const originNode = this.graph.getNodeById(linkInfo.origin_id);
-                                const originOutput = originNode.outputs[linkInfo.origin_slot];
-                                const inputType = originOutput.type;
-                                this.outputs[0].type = inputType;
-                                // Update all input types
-                                for (let i = 0; i < this.inputs.length; i++) {
-                                    const curInput = this.inputs[i];
-                                    if (curInput.name.startsWith("input_")) {
-                                        curInput.type = inputType;
-                                        if (curInput.link != null && this.graph?.links) {
-                                            const connectedLinkInfo = this.graph.links[curInput.link];
-                                            if (connectedLinkInfo) {
-                                                const connectedNode = this.graph.getNodeById(connectedLinkInfo.origin_id);
-                                                const connectedOutput = connectedNode.outputs[connectedLinkInfo.origin_slot];
-                                                if (connectedOutput.type !== inputType && connectedOutput.type !== wildcard) {
-                                                    this.disconnectInput(i);
+                                if (originNode && originNode.outputs && originNode.outputs[linkInfo.origin_slot]) {
+                                    const originOutput = originNode.outputs[linkInfo.origin_slot];
+                                    const inputType = originOutput.type;
+                                    this.outputs[0].type = inputType;
+                                    // Update all input types
+                                    for (let i = 0; i < this.inputs.length; i++) {
+                                        const curInput = this.inputs[i];
+                                        if (curInput.name.startsWith("input_")) {
+                                            curInput.type = inputType;
+                                            if (curInput.link != null && this.graph?.links) {
+                                                const connectedLinkInfo = this.graph.links[curInput.link];
+                                                if (connectedLinkInfo) {
+                                                    const connectedNode = this.graph.getNodeById(connectedLinkInfo.origin_id);
+                                                    if (connectedNode && connectedNode.outputs && connectedNode.outputs[connectedLinkInfo.origin_slot]) {
+                                                        const connectedOutput = connectedNode.outputs[connectedLinkInfo.origin_slot];
+                                                        if (connectedOutput.type !== inputType && connectedOutput.type !== wildcard) {
+                                                            this.disconnectInput(i);
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     }
-                                }
-                                // Disconnect incompatible output links
-                                if (this.outputs[0].links && this.outputs[0].links.length > 0 && this.graph?.links) {
-                                    const linksToDisconnect = [];
-                                    for (const linkId of this.outputs[0].links) {
-                                        const outputLinkInfo = this.graph.links[linkId];
-                                        if (outputLinkInfo) {
-                                            const targetNode = this.graph.getNodeById(outputLinkInfo.target_id);
-                                            const targetInput = targetNode.inputs[outputLinkInfo.target_slot];
-                                            if (targetInput.type !== inputType && targetInput.type !== wildcard && inputType !== wildcard) {
-                                                linksToDisconnect.push(linkId);
+                                    // Disconnect incompatible output links
+                                    if (this.outputs[0].links && this.outputs[0].links.length > 0 && this.graph?.links) {
+                                        const linksToDisconnect = [];
+                                        for (const linkId of this.outputs[0].links) {
+                                            const outputLinkInfo = this.graph.links[linkId];
+                                            if (outputLinkInfo) {
+                                                const targetNode = this.graph.getNodeById(outputLinkInfo.target_id);
+                                                if (targetNode && targetNode.inputs && targetNode.inputs[outputLinkInfo.target_slot]) {
+                                                    const targetInput = targetNode.inputs[outputLinkInfo.target_slot];
+                                                    if (targetInput.type !== inputType && targetInput.type !== wildcard && inputType !== wildcard) {
+                                                        linksToDisconnect.push(linkId);
+                                                    }
+                                                }
                                             }
                                         }
-                                    }
-                                    for (const linkId of linksToDisconnect) {
-                                        this.graph.removeLink(linkId);
+                                        for (const linkId of linksToDisconnect) {
+                                            this.graph.removeLink(linkId);
+                                        }
                                     }
                                 }
                             }
@@ -246,6 +724,14 @@ app.registerExtension({
             const atLimit = currentCount >= MAX_INPUTS;
             const moreThanOne = currentCount > 1;
 
+            // Batch Add/Remove Inputs option
+            options.unshift({
+                content: "Batch Add/Remove Inputs",
+                callback: () => {
+                    showBatchInputDialog(node, MAX_INPUTS, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget);
+                }
+            });
+
             options.unshift({
                 content: atLimit ? "Add Input (Max 99 reached)" : "Add Input",
                 disabled: atLimit,
@@ -256,7 +742,7 @@ app.registerExtension({
                         return;
                     }
 
-                    let inputType = this.outputs[0].type;
+                    let inputType = (this.outputs && this.outputs[0]) ? this.outputs[0].type : "*";
 
                     const newIndex = allInputs.length;
                     this.addInput("input_" + newIndex, inputType);
