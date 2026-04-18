@@ -11,11 +11,11 @@ A collection of utility nodes designed to bring dynamic logic and flexible selec
 An advanced "Switch" or "Router" node that can handle **any** data type (Images, Latents, Models, Strings, etc.). It allows you to choose which input to pass through to the output dynamically.
 
 * **Dynamic Inputs:** Right-click the node to "Add Input" or "Remove Input" to create as many slots as you need (`input_0`, `input_1`, etc.).
-* **Smart Type Matching:** The node automatically changes its output type based on what is connected to `input_0`. No longer requires multiple different nodes to pass different types of data.
+* **Batch Add/Remove:** The context menu also supports batch add/remove operations and enforces a maximum of 99 inputs.
+* **Smart Type Matching:** The node keeps its output type in sync with connected inputs, resetting to wildcard when nothing is connected and locking to the first connected input type once a branch is attached.
 * **Lazy Evaluation:** Only the selected branch is evaluated, saving processing time.
-* **Boolean Toggle:** * If `use_bool_item` is off: Selects the input based on the `select` index.
-* If `use_bool_item` is on: Uses a True/False logic to jump between two specific input indices defined in `item_true` and `item_false`.
-
+* **Boolean Toggle:** When `use_bool_item` is off, the node uses the `select` index. When `use_bool_item` is on, it switches between `item_true` and `item_false` indices instead.
+v
 
 ### 2. Dynamic Combo
 
@@ -42,8 +42,11 @@ To add or remove an input from the `DynamicTypeSelector`, use the right-click co
 
 ![Inputs](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/inputs.png)
 
-> [!NOTE]
-> **Dynamic Type Selector:** `input_0` is the key input to determine the type of the rest of the inputs. If a different type of input is connected to `input_0`, connections with type mismatch will be disconnected.
+The first data connects to any of the inputs will determine the types of the rest of the nodes. When the last node is disconnected from the inputs, the type will be reset back to `any`.
+
+You can also adding/removing multiple inputs with the `Batch Add/Remove Inputs`.
+
+![Bulk Add/Remove Inputs](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/bulk_input_control.png)
 
 Use `use_bool_item` to select an item as output conditionally.
 
@@ -88,7 +91,7 @@ To keep the logic and UI clean, this extension uses:
 ## Usage Tips
 
 > [!TIP]
-> **Dynamic Type Selector:** When using the "Add Input" feature, connect your main data type to `input_0` first. This "locks" the node to that data type, ensuring all subsequent inputs and the output match correctly.
+> **Dynamic Type Selector:** When using the "Add Input" feature, connect your main data type to any of the inputs. This "locks" the node to that data type, ensuring all subsequent inputs and the output match correctly.
 
 ## Compatible Versions and Notices
 

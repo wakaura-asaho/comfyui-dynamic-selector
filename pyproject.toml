@@ -1,0 +1,24 @@
+[project]
+name = "comfyui-dynamic-selector"
+version = "1.0.00"
+description = "A ComfyUI custom node collection for flexible data selection."
+authors = [
+  {name = "Wakaura Asaho", email = "onestandaction@gmail.com"}
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = []
+dependencies = [
+  "comfyui-frontend-package>=1.37.11"
+]
+
+[project.urls]
+bugs = "https://github.com/wakaura-asaho/comfyui-dynamic-selector/issues"
+homepage = "https://github.com/wakaura-asaho/comfyui-dynamic-selector"
+Repository = "https://github.com/wakaura-asaho/comfyui-dynamic-selector"
+
+[tool.comfy]
+PublisherId = "wakaura"
+DisplayName = "ComfyUI-Dynamic-Selector"
+Icon = ""
+requires-comfyui = ">=0.12.3"
