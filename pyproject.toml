@@ -20,5 +20,5 @@ Repository = "https://github.com/wakaura-asaho/comfyui-dynamic-selector"
 [tool.comfy]
 PublisherId = "wakaura"
 DisplayName = "ComfyUI-Dynamic-Selector"
-Icon = ""
+Icon = "https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/logo_notitle.png"
 requires-comfyui = ">=0.12.3"
