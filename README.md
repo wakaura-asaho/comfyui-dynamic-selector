@@ -17,9 +17,24 @@ An advanced "Switch" or "Router" node that can handle **any** data type (Images,
 * **Smart Type Matching:** The node keeps its output type in sync with connected inputs, resetting to wildcard when nothing is connected and locking to the first connected input type once a branch is attached.
 * **Lazy Evaluation:** Only the selected branch is evaluated, saving processing time.
 * **Boolean Toggle:** When `use_bool_item` is off, the node uses the `select` index. When `use_bool_item` is on, it switches between `item_true` and `item_false` indices instead.
-v
 
-### 2. Dynamic Combo
+### 2. Dynamic Group
+
+Packs multiple inputs of the same type into a unified `GROUP` object, allowing you to manage collections of data as a single stream.
+
+* **Group Packing:** Convert individual inputs (Images, Models, etc.) into a structured group.
+* **Type Preservation:** Automatically detects and maintains the underlying data type of the grouped items.
+* **Dynamic Scaling:** Add or remove input slots dynamically via the context menu.
+
+### 3. Dynamic Group Selector
+
+Provides advanced nested selection by extracting a specific item from a specific group. This allows for deeper logic control compared to the standard Dynamic Type Selector.
+
+* **Double-Layer Selection:** Select which `GROUP` input to access, then target a specific `index` within that group.
+* **Nested Logic:** Perfect for switching between different sets of data (e.g., alternating between different character asset packs).
+* **Type Safety:** The `Type Strict` toggle ensures all connected groups share the same data type. If set, the node will raise an error and interrupt the execution.
+
+### 4. Dynamic Combo
 
 A string manipulation node that creates a searchable dropdown (Combo Box) directly from a text list.
 
@@ -56,7 +71,17 @@ When the toggle is on, the `select` index will not be used, and the widget will 
 
 ![Bool_Item](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/bool_item02.png)
 
-You can find a simple workflow file in the `workflows` folder.
+Use Dynamic Group to collect data of the same type and pack them into a group, creating a nested data flow execution.
+
+You can then use the Group Selector to extract the data from the group and pass it through the OUTPUT socket.
+
+![Group_Selection](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/grouped_selection.png)
+
+If `Type Strict` is set to `True`, the node will check if the data type stored in each group is the same; if not the same, an error is raised.
+
+![Group_Selection](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/grouped_selection_type_check.png)
+
+All example workflows are located at the `workflows` folder.
 
 ---
 
@@ -94,6 +119,9 @@ To keep the logic and UI clean, this extension uses:
 
 > [!TIP]
 > **Dynamic Type Selector:** When using the "Add Input" feature, connect your main data type to any inputs. This "locks" the node to that data type, ensuring all subsequent inputs and the output match correctly.
+
+> [!TIP]
+> **Dynamic Group Selector:** Use the `Type Strict` toggle when your workflow demands consistent data types across all groups, or disable it for more flexible, heterogeneous data handling.
 
 ## Compatible Versions and Notices
 

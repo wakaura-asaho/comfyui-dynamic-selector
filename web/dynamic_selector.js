@@ -1,7 +1,58 @@
 import { app } from "/scripts/app.js";
 
-function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget) {
-    const allInputs = node.inputs.filter(({ name }) => name.startsWith("input_"));
+function getDynamicInputs(node) {
+    return (node.inputs || []).filter(i => i.name && i.name.startsWith("input_"));
+}
+
+function getLastDynamicInput(inputs) {
+    if (!inputs || inputs.length === 0) return null;
+    return inputs.reduce((a, b) => {
+        const numA = parseInt(a.name.match(/\d+$/)?.[0] || "0", 10);
+        const numB = parseInt(b.name.match(/\d+$/)?.[0] || "0", 10);
+        return numA > numB ? a : b;
+    });
+}
+
+function getMaxInputIndex(inputs) {
+    if (!inputs || inputs.length === 0) return 0;
+    return parseInt(getLastDynamicInput(inputs).name.match(/\d+$/)?.[0] || "0", 10);
+}
+
+function getConnectedDynamicInputs(node) {
+    return getDynamicInputs(node).filter(inp => inp.link != null && node.graph?.links?.[inp.link]);
+}
+
+function addDynamicInput(node, maxInputs, inputType) {
+    const inputs = getDynamicInputs(node);
+    if (inputs.length >= maxInputs) {
+        if (app.ui && app.ui.dialog && app.ui.dialog.show) {
+            app.ui.dialog.show(`Maximum of ${maxInputs} inputs reached.`);
+        }
+        return false;
+    }
+    const newIndex = inputs.length > 0 ? getMaxInputIndex(inputs) + 1 : 0;
+    node.addInput("input_" + newIndex, inputType);
+    return true;
+}
+
+function removeLastDynamicInput(node, showDialog = true) {
+    const inputs = getDynamicInputs(node);
+    if (inputs.length <= 1) {
+        if (showDialog && app.ui && app.ui.dialog && app.ui.dialog.show) {
+            app.ui.dialog.show("Can not remove the first input.");
+        }
+        return false;
+    }
+    const last = getLastDynamicInput(inputs);
+    if (last) {
+        node.removeInput(node.inputs.indexOf(last));
+        return true;
+    }
+    return false;
+}
+
+function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget, forcedInputType) {
+    const allInputs = getDynamicInputs(node);
     const currentCount = allInputs.length;
 
     // Create modal styles
@@ -243,7 +294,7 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
             if (resultCount > maxInputs) {
                 showAddError(`Cannot add ${amount} inputs. Would exceed maximum of ${maxInputs}.`);
             } else {
-                performAddInputs(node, amount, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget);
+                performAddInputs(node, amount, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget, forcedInputType);
                 closeModal();
             }
         };
@@ -366,7 +417,7 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
                 showAddError(`Cannot add ${amount} inputs. Would exceed maximum of ${maxInputs}. Max to add: ${maxInputs - currentCount}`);
                 return;
             }
-            performAddInputs(node, amount, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget);
+            performAddInputs(node, amount, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget, forcedInputType);
         } else {
             const amount = parseInt(customRemoveInput.value) || 0;
             if (amount < 1) {
@@ -440,13 +491,14 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
     document.body.appendChild(modal);
 }
 
-function performAddInputs(node, count, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget) {
-    let inputType = (node.outputs && node.outputs[0]) ? node.outputs[0].type : "*";
-    const allInputs = node.inputs.filter(({ name }) => name.startsWith("input_"));
+function performAddInputs(node, count, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget, forcedInputType) {
+    let inputType = forcedInputType;
+    if (inputType === undefined) {
+        inputType = (node.outputs && node.outputs[0]) ? node.outputs[0].type : "*";
+    }
 
     for (let i = 0; i < count; i++) {
-        const newIndex = allInputs.length + i;
-        node.addInput("input_" + newIndex, inputType);
+        addDynamicInput(node, 9999, inputType); // Max checked beforehand
     }
 
     validateSelection(selectionWidget, node);
@@ -456,15 +508,7 @@ function performAddInputs(node, count, selectionWidget, boolTrueItemIndexWidget,
 
 function performRemoveInputs(node, count, selectionWidget, boolTrueItemIndexWidget, boolFalseItemIndexWidget) {
     for (let i = 0; i < count; i++) {
-        const allInputs = node.inputs.filter(({ name }) => name.startsWith("input_"));
-        if (allInputs.length <= 1) break;
-
-        const lastInput = Object.values(allInputs).reduce((a, b) =>
-            Number(a.name.match(/\d+$/)[0]) > Number(b.name.match(/\d+$/)[0]) ? a : b
-        );
-        if (lastInput) {
-            node.removeInput(node.inputs.indexOf(lastInput));
-        }
+        if (!removeLastDynamicInput(node, false)) break;
     }
 
     validateSelection(selectionWidget, node);
@@ -473,21 +517,17 @@ function performRemoveInputs(node, count, selectionWidget, boolTrueItemIndexWidg
 }
 
 function validateSelection(widget, node) {
+    if (!widget) return;
     let v = widget.value;
-    const allInputs = node.inputs.filter(({ name }) => name.startsWith("input_"));
+    const allInputs = getDynamicInputs(node);
 
     if (!allInputs.length)
         return;
 
-    const indices = allInputs.map(i => {
-        const match = i.name.match(/\d+$/);
-        return match ? parseInt(match[0]) : 0;
-    });
-
     const minIndex = 0;
-    const maxIndex = Math.max(...indices);
+    const maxIndex = getMaxInputIndex(allInputs);
 
-    const clamped = Math.max(minIndex, Math.min(v, maxIndex));
+    const clamped = Math.max(minIndex, Math.min(v ?? 0, maxIndex));
 
     if (widget.value !== clamped) {
         widget.value = clamped;
@@ -502,7 +542,7 @@ function validateSelection(widget, node) {
 
     if (app.graph)
         // app.graph._version++;
-    app.graph.setDirtyCanvas(true);
+        app.graph.setDirtyCanvas(true);
 }
 
 function updateWidgetAvailability(node, widget, visible, available) {
@@ -518,13 +558,13 @@ function updateWidgetAvailability(node, widget, visible, available) {
 }
 
 app.registerExtension({
-	name: "Wakaura.DynamicTypeSelector",
+    name: "Wakaura.DynamicTypeSelector",
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData.name !== "DynamicTypeSelector")
             return;
 
         const onNodeCreated = nodeType.prototype.onNodeCreated;
-        nodeType.prototype.onNodeCreated = function() {
+        nodeType.prototype.onNodeCreated = function () {
             const r = onNodeCreated?.apply(this, arguments);
             const node = this;
 
@@ -567,15 +607,15 @@ app.registerExtension({
 
                 // Reset all the ports to wildcards if no inputs are connected.
                 const wildcard = "*";
-                const hasAnyConnectedInput = this.inputs.some(input => input.name.startsWith("input_") && input.link != null && this.graph?.links?.[input.link]);
+                const hasAnyConnectedInput = getConnectedDynamicInputs(this).length > 0;
 
                 if (!hasAnyConnectedInput) {
                     let hasCleanedAnyInput = false;
 
-                    this.inputs?.forEach(input => {
-                        const hasNoLink = input.link === null || input.link === undefined || !this.graph?.links?.[input.link];
-                        
-                        if (input.name.startsWith("input_") && hasNoLink) {
+                    getDynamicInputs(this).forEach(input => {
+                        const hasNoLink = input.link == null || !this.graph?.links?.[input.link];
+
+                        if (hasNoLink) {
                             input.type = wildcard;
                             hasCleanedAnyInput = true;
                         }
@@ -610,12 +650,12 @@ app.registerExtension({
                 validateSelection(boolFalseItemIndexWidget, node);
             });
 
-            return r;   
+            return r;
         };
 
         // Enforce type matching
         const onConnectInput = nodeType.prototype.onConnectInput;
-        nodeType.prototype.onConnectInput = function(targetSlot, type, output, originNode, originSlot) {
+        nodeType.prototype.onConnectInput = function (targetSlot, type, output, originNode, originSlot) {
             const input = this.inputs[targetSlot];
             if (input.name.startsWith("input_")) {
                 const outputType = this.outputs[0].type;
@@ -635,13 +675,13 @@ app.registerExtension({
 
         // Update output type based on first connected input
         const onConnectionsChange = nodeType.prototype.onConnectionsChange;
-        nodeType.prototype.onConnectionsChange = function(type, slotIndex, isConnected, link, ioSlot) {
+        nodeType.prototype.onConnectionsChange = function (type, slotIndex, isConnected, link, ioSlot) {
             const r = onConnectionsChange?.apply(this, arguments);
             if (type === 1 && this.outputs && this.outputs[0]) { // Input connection changed
                 const input = this.inputs[slotIndex];
                 if (input && input.name.startsWith("input_")) {
                     const wildcard = "*";
-                    const connectedInputs = this.inputs.filter(i => i.name.startsWith("input_") && i.link != null && this.graph?.links?.[i.link]);
+                    const connectedInputs = getConnectedDynamicInputs(this);
                     if (isConnected && this.outputs[0].type === wildcard) {
                         // First connection attempt: set type based on this input
                         if (this.graph?.links) {
@@ -696,12 +736,7 @@ app.registerExtension({
                     } else if (!isConnected && connectedInputs.length === 0) {
                         // No inputs connected anymore, reset to wildcard
                         this.outputs[0].type = wildcard;
-                        for (let i = 0; i < this.inputs.length; i++) {
-                            const curInput = this.inputs[i];
-                            if (curInput.name.startsWith("input_")) {
-                                curInput.type = wildcard;
-                            }
-                        }
+                        getDynamicInputs(this).forEach(inp => inp.type = wildcard);
                     }
                 }
             }
@@ -718,7 +753,7 @@ app.registerExtension({
             const boolTrueItemIndexWidget = this.widgets.find(w => w.name === "item_true");
             const boolFalseItemIndexWidget = this.widgets.find(w => w.name === "item_false");
 
-            const allInputs = this.inputs.filter(({ name }) => name.startsWith("input_"));
+            const allInputs = getDynamicInputs(this);
             const currentCount = allInputs.length;
             const MAX_INPUTS = 99;
             const atLimit = currentCount >= MAX_INPUTS;
@@ -736,42 +771,23 @@ app.registerExtension({
                 content: atLimit ? "Add Input (Max 99 reached)" : "Add Input",
                 disabled: atLimit,
                 callback: () => {
-                    const allInputs = this.inputs.filter(({ name }) => name.startsWith("input_"));
-                    if (allInputs.length >= 99) {
-                        app.ui.dialog.show("Maximum of 99 inputs reached.");
-                        return;
-                    }
-
                     let inputType = (this.outputs && this.outputs[0]) ? this.outputs[0].type : "*";
 
-                    const newIndex = allInputs.length;
-                    this.addInput("input_" + newIndex, inputType);
-
-                    validateSelection(selectionWidget, node);
-                    validateSelection(boolTrueItemIndexWidget, node);
-                    validateSelection(boolFalseItemIndexWidget, node);
+                    if (addDynamicInput(this, 99, inputType)) {
+                        validateSelection(selectionWidget, node);
+                        validateSelection(boolTrueItemIndexWidget, node);
+                        validateSelection(boolFalseItemIndexWidget, node);
+                    }
                 }
             });
             options.unshift({
                 content: "Remove Input",
                 disabled: !moreThanOne,
                 callback: () => {
-                    const allInputs = this.inputs.filter(({ name }) => name.startsWith("input_"));
-                    if (allInputs.length <= 1) {
-                        app.ui.dialog.show("Can not remove the first input.");
-                        return;
-                    }
-
-                    if (allInputs.length > 1) {
-                        const lastInput = Object.values(allInputs).reduce((a, b) => 
-                            Number(a.name.match(/\d+$/)[0]) > Number(b.name.match(/\d+$/)[0]) ? a : b
-                        );
-                        if (lastInput) {
-                            this.removeInput(this.inputs.indexOf(lastInput));
-                            validateSelection(selectionWidget, node);
-                            validateSelection(boolTrueItemIndexWidget, node);
-                            validateSelection(boolFalseItemIndexWidget, node);
-                        }
+                    if (removeLastDynamicInput(this)) {
+                        validateSelection(selectionWidget, node);
+                        validateSelection(boolTrueItemIndexWidget, node);
+                        validateSelection(boolFalseItemIndexWidget, node);
                     }
                 }
             });
@@ -848,7 +864,7 @@ app.registerExtension({
                 }
                 return true;
             }
-            
+
             const updateCombo = () => {
                 const items = splitItems(listWidget.value);
 
@@ -908,10 +924,10 @@ app.registerExtension({
                 });
             };
         };
-        
+
         // Do not connect if disabled or hidden
         const onConnectInput = nodeType.prototype.onConnectInput;
-        nodeType.prototype.onConnectInput = function(targetSlot, type, output, originNode, originSlot) {
+        nodeType.prototype.onConnectInput = function (targetSlot, type, output, originNode, originSlot) {
             const input = this.inputs[targetSlot];
             if (input.widget && input.widget.name) {
                 const widget = this.widgets.find(w => w.name === input.widget.name);
@@ -922,4 +938,238 @@ app.registerExtension({
             return onConnectInput?.apply(this, arguments);
         };
     }
+});
+
+app.registerExtension({
+    name: "Wakaura.DynamicGroup",
+
+    async beforeRegisterNodeDef(nodeType, nodeData) {
+        if (nodeData.name !== "DynamicGroup")
+            return;
+
+        const onNodeCreated = nodeType.prototype.onNodeCreated;
+        nodeType.prototype.onNodeCreated = function () {
+            const r = onNodeCreated?.apply(this, arguments);
+            const node = this;
+
+            requestAnimationFrame(() => {
+                const wildcard = "*";
+                const hasAnyConnected = getConnectedDynamicInputs(this).length > 0;
+                if (!hasAnyConnected) {
+                    getDynamicInputs(this).forEach(inp => {
+                        if (inp.link == null || !this.graph?.links?.[inp.link]) {
+                            inp.type = wildcard;
+                        }
+                    });
+                    // Output remains "GROUP" — it's always a group regardless of inner type.
+                }
+            });
+
+            return r;
+        };
+
+        const onConnectInput = nodeType.prototype.onConnectInput;
+        nodeType.prototype.onConnectInput = function (targetSlot, type, output, originNode, originSlot) {
+            const input = this.inputs[targetSlot];
+            if (input.name.startsWith("input_")) {
+                // Find the type already in use from any connected input
+                const firstConnected = getConnectedDynamicInputs(this)[0];
+                if (firstConnected) {
+                    const lockedType = firstConnected.type;
+                    if (lockedType !== "*" && type !== lockedType && type !== "*") {
+                        return false; // Reject mismatched type
+                    }
+                }
+            }
+            return onConnectInput?.apply(this, arguments);
+        };
+
+        const onConnectionsChange = nodeType.prototype.onConnectionsChange;
+        nodeType.prototype.onConnectionsChange = function (type, slotIndex, isConnected, link, ioSlot) {
+            const r = onConnectionsChange?.apply(this, arguments);
+            if (type !== 1) return r; // Only care about input-side changes
+
+            const input = this.inputs[slotIndex];
+            if (!input || !input.name.startsWith("input_")) return r;
+
+            const wildcard = "*";
+            const connectedInputs = getConnectedDynamicInputs(this);
+
+            if (isConnected && this.graph?.links) {
+                const linkInfo = this.graph.links[input.link];
+                if (linkInfo) {
+                    const originNode = this.graph.getNodeById(linkInfo.origin_id);
+                    if (originNode?.outputs?.[linkInfo.origin_slot]) {
+                        const newType = originNode.outputs[linkInfo.origin_slot].type;
+                        // Lock all input_N ports to this type
+                        getDynamicInputs(this).forEach(inp => inp.type = newType);
+                        // Disconnect any already-connected inputs with a different type
+                        for (let i = 0; i < this.inputs.length; i++) {
+                            const cur = this.inputs[i];
+                            if (!cur.name.startsWith("input_") || i === slotIndex) continue;
+                            if (cur.link != null && this.graph?.links) {
+                                const cl = this.graph.links[cur.link];
+                                if (cl) {
+                                    const cn = this.graph.getNodeById(cl.origin_id);
+                                    if (cn?.outputs?.[cl.origin_slot]) {
+                                        const ct = cn.outputs[cl.origin_slot].type;
+                                        if (ct !== newType && ct !== wildcard) {
+                                            this.disconnectInput(i);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (!isConnected && connectedInputs.length === 0) {
+                // All inputs disconnected — reset to wildcard
+                getDynamicInputs(this).forEach(inp => inp.type = wildcard);
+            }
+
+            return r;
+        };
+
+        const origGetExtraMenuOptions = nodeType.prototype.getExtraMenuOptions;
+        nodeType.prototype.getExtraMenuOptions = function (_, options) {
+            const r = origGetExtraMenuOptions?.apply?.(this, arguments);
+            const node = this;
+            const MAX_INPUTS = 99;
+            const allInputs = getDynamicInputs(this);
+            const currentCount = allInputs.length;
+            const atLimit = currentCount >= MAX_INPUTS;
+            const moreThanOne = currentCount > 1;
+
+            options.unshift({
+                content: "Batch Add/Remove Inputs",
+                callback: () => {
+                    const firstConnected = getConnectedDynamicInputs(node)[0];
+                    let inputType = firstConnected ? firstConnected.type : "*";
+                    showBatchInputDialog(node, MAX_INPUTS, null, null, null, inputType);
+                },
+            });
+
+            options.unshift({
+                content: atLimit ? "Add Input (Max 99 reached)" : "Add Input",
+                disabled: atLimit,
+                callback: () => {
+                    // Derive the locked type from any connected port
+                    const firstConnected = getConnectedDynamicInputs(this)[0];
+                    let inputType = firstConnected ? firstConnected.type : "*";
+                    addDynamicInput(this, MAX_INPUTS, inputType);
+                },
+            });
+
+            options.unshift({
+                content: "Remove Input",
+                disabled: !moreThanOne,
+                callback: () => {
+                    removeLastDynamicInput(this);
+                },
+            });
+
+            return r;
+        };
+    },
+});
+
+app.registerExtension({
+    name: "Wakaura.DynamicGroupSelector",
+
+    async beforeRegisterNodeDef(nodeType, nodeData) {
+        if (nodeData.name !== "DynamicGroupSelector")
+            return;
+
+        const onNodeCreated = nodeType.prototype.onNodeCreated;
+        nodeType.prototype.onNodeCreated = function () {
+            const r = onNodeCreated?.apply(this, arguments);
+            const node = this;
+
+            const selectGroupWidget = this.widgets.find(w => w.name === "select_group");
+            const indexWidget = this.widgets.find(w => w.name === "index");
+
+            // Wrap a widget's callback so it re-clamps after every change.
+            function wrapClamp(widget) {
+                if (!widget) return;
+                const original = widget.callback;
+                widget.callback = function () {
+                    original?.apply(this, arguments);
+                    requestAnimationFrame(() => validateSelection(widget, node));
+                };
+            }
+
+            requestAnimationFrame(() => {
+                validateSelection(selectGroupWidget, node);
+                wrapClamp(selectGroupWidget);
+            });
+
+            return r;
+        };
+
+        const onConnectInput = nodeType.prototype.onConnectInput;
+        nodeType.prototype.onConnectInput = function (targetSlot, type, output, originNode, originSlot) {
+            const input = this.inputs[targetSlot];
+            if (input.name.startsWith("input_")) {
+                // Only accept GROUP connections
+                if (type !== "GROUP" && type !== "*") {
+                    return false;
+                }
+            }
+            return onConnectInput?.apply(this, arguments);
+        };
+
+        const onConnectionsChange = nodeType.prototype.onConnectionsChange;
+        nodeType.prototype.onConnectionsChange = function (type, slotIndex, isConnected, link, ioSlot) {
+            const r = onConnectionsChange?.apply(this, arguments);
+            if (type !== 1) return r; // Only input-side changes
+
+            const input = this.inputs[slotIndex];
+            if (!input?.name.startsWith("input_")) return r;
+
+            const selectGroupWidget = this.widgets.find(w => w.name === "select_group");
+            validateSelection(selectGroupWidget, this);
+
+            return r;
+        };
+
+        const origGetExtraMenuOptions = nodeType.prototype.getExtraMenuOptions;
+        nodeType.prototype.getExtraMenuOptions = function (_, options) {
+            const r = origGetExtraMenuOptions?.apply?.(this, arguments);
+            const node = this;
+            const MAX_INPUTS = 99;
+            const allInputs = getDynamicInputs(this);
+            const currentCount = allInputs.length;
+            const atLimit = currentCount >= MAX_INPUTS;
+            const moreThanOne = currentCount > 1;
+
+            const selectGroupWidget = this.widgets.find(w => w.name === "select_group");
+
+            options.unshift({
+                content: "Batch Add/Remove Group Inputs",
+                callback: () => showBatchInputDialog(node, MAX_INPUTS, selectGroupWidget, null, null, "GROUP"),
+            });
+
+            options.unshift({
+                content: atLimit ? "Add Group Input (Max 99 reached)" : "Add Group Input",
+                disabled: atLimit,
+                callback: () => {
+                    if (addDynamicInput(this, MAX_INPUTS, "GROUP")) {
+                        validateSelection(selectGroupWidget, node);
+                    }
+                },
+            });
+
+            options.unshift({
+                content: "Remove Group Input",
+                disabled: !moreThanOne,
+                callback: () => {
+                    if (removeLastDynamicInput(this)) {
+                        validateSelection(selectGroupWidget, node);
+                    }
+                },
+            });
+
+            return r;
+        };
+    },
 });
