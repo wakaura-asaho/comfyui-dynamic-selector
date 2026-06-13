@@ -47,6 +47,20 @@ A string manipulation node that creates a searchable dropdown (Combo Box) direct
 
 * **Outputs:** Returns the selected string, its index in the list, and the cleaned-up full list.
 
+### 5. Float Iterator
+
+Generates a list of float values from `Start` to `Stop` using a specified `Increment`. ComfyUI fans out the returned list, executing connected downstream nodes once per value.
+*   **Direction Validation:** Prevents infinite loops by ensuring the increment direction aligns with the start and stop bounds.
+*   **Precision Guard:** Uses decimal rounding to suppress floating-point drift.
+
+### 6. Int Iterator
+
+Generates a list of integers from `Start` to `Stop` using a specified `Increment`. ComfyUI fans out the list to execute downstream nodes once per value.
+
+### 7. String Iterator
+
+Iterates through a list of strings provided one per line. ComfyUI fans out the list to execute downstream nodes once per string value.
+
 ---
 
 ## Example Usage
@@ -81,6 +95,23 @@ If `Type Strict` is set to `True`, the node will check if the data type stored i
 
 ![Group_Selection](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/grouped_selection_type_check.png)
 
+### Iterators
+
+*   **Float Iterator with KSampler:** Connect `Float Iterator` to the KSampler `CFG` input to test the model's behavior across different CFG values in sequence.
+
+    ![Float Iterator with KSampler](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/iterator_float.png)
+
+*   **Float Iterator with Model Patcher:** Connect `Float Iterator` to model patchers like `FreeU_V2` to evaluate parameter sweeps.
+
+    ![Float Iterator with FreeU_V2](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/iterator_float2.png)
+
+*   **String Iterator with Prompts:** Connect `String Iterator` to prompt fields to compare the effects of different prompts on the generated results.
+
+    ![String Iterator with Prompts](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/iterator_string.png)
+
+> [!NOTE]
+> The iterator example workflows use a new native node called `Text Format`, which is only available in newer versions of ComfyUI (tested: ComfyUI 0.24.1). If you encounter errors when opening these workflows, please update ComfyUI or use alternative nodes to wire the desired connections.
+
 All example workflows are located at the `workflows` folder.
 
 ---
@@ -112,7 +143,8 @@ git clone https://github.com/wakaura-asaho/comfyui-dynamic-selector.git
 
 To keep the logic and UI clean, this extension uses:
 
-* `dynamic_selector.py`: Backend logic and node definitions.
+* `dynamic_selector.py`: Backend logic and node definitions for selectors/groups.
+* `dynamic_iterator.py`: Backend logic and node definitions for iterators.
 * `dynamic_selector.js`: Custom browser-side logic for dynamic input handling and UI visibility.
 
 ## Usage Tips

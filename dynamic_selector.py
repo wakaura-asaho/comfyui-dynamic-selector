@@ -487,18 +487,3 @@ class SchemaDefineHelper:
     @staticmethod
     def dynamic_output(id: str = "output") -> io.AnyType.Output:
         return io.AnyType.Output(id=id, display_name=id.upper())
-
-
-NODE_CLASS_MAPPINGS = {
-    "DynamicGroup": DynamicGroup,
-    "DynamicGroupSelector": DynamicGroupSelector,
-    "DynamicTypeSelector": DynamicTypeSelector,
-    "DynamicCombo": DynamicCombo,
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "DynamicGroup": "Dynamic Group",
-    "DynamicGroupSelector": "Dynamic Group Selector",
-    "DynamicTypeSelector": "Dynamic Type Selector",
-    "DynamicCombo": "Dynamic Combo",
-}
