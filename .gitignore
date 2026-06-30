@@ -4,3 +4,4 @@
 /fonts/*.ttf
 /fonts/*.otf
 !/fonts/ShareTechMono-Regular.ttf
+.vscode/

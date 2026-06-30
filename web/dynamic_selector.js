@@ -55,7 +55,6 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
     const allInputs = getDynamicInputs(node);
     const currentCount = allInputs.length;
 
-    // Create modal styles
     const modalStyles = `
         .batch-input-modal {
             position: fixed;
@@ -63,7 +62,7 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0,0,0,0.5);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -71,41 +70,41 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
             font-family: Arial, sans-serif;
         }
         .batch-input-dialog {
-            background: #1e1e1e;
-            border: 1px solid #444;
+            background: var(--comfy-menu-bg);
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 20px;
             min-width: 400px;
             max-width: 500px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
-            color: #e0e0e0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+            color: var(--fg-color);
         }
         .batch-dialog-title {
             font-size: 18px;
             font-weight: bold;
             margin-bottom: 15px;
-            border-bottom: 1px solid #444;
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 10px;
         }
         .batch-dialog-info {
-            background: #252525;
+            background: var(--comfy-input-bg);
             padding: 10px;
             border-radius: 4px;
             margin-bottom: 15px;
             font-size: 13px;
-            color: #b0b0b0;
+            color: var(--descrip-text);
         }
         .batch-dialog-tabs {
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
-            border-bottom: 1px solid #444;
+            border-bottom: 1px solid var(--border-color);
         }
         .batch-dialog-tab {
             padding: 8px 15px;
-            background: #2d2d2d;
+            background: var(--comfy-input-bg);
             border: none;
-            color: #e0e0e0;
+            color: var(--fg-color);
             cursor: pointer;
             border-radius: 4px 4px 0 0;
             font-size: 13px;
@@ -113,11 +112,11 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
             transition: background 0.2s;
         }
         .batch-dialog-tab.active {
-            background: #3d3d3d;
+            background: var(--bg-color);
             border-bottom: 2px solid #007acc;
         }
         .batch-dialog-tab:hover {
-            background: #3d3d3d;
+            background: var(--bg-color);
         }
         .batch-dialog-content {
             display: none;
@@ -133,15 +132,15 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
             font-size: 12px;
             font-weight: 600;
             margin-bottom: 8px;
-            color: #b0b0b0;
+            color: var(--descrip-text);
             text-transform: uppercase;
         }
         .batch-dialog-input {
             width: 100%;
             padding: 8px 10px;
-            background: #2d2d2d;
-            border: 1px solid #444;
-            color: #e0e0e0;
+            background: var(--comfy-input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--input-text);
             border-radius: 4px;
             font-size: 13px;
             box-sizing: border-box;
@@ -149,7 +148,7 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
         .batch-dialog-input:focus {
             outline: none;
             border-color: #007acc;
-            background: #333;
+            background: var(--bg-color);
         }
         .batch-dialog-presets {
             display: grid;
@@ -159,9 +158,9 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
         }
         .batch-dialog-preset-btn {
             padding: 8px;
-            background: #2d2d2d;
-            border: 1px solid #444;
-            color: #e0e0e0;
+            background: var(--comfy-input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--fg-color);
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
@@ -169,21 +168,21 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
             transition: all 0.2s;
         }
         .batch-dialog-preset-btn:hover {
-            background: #3d3d3d;
+            background: var(--bg-color);
             border-color: #007acc;
         }
         .batch-dialog-error {
-            background: #3d1f1f;
-            border: 1px solid #8b3333;
-            color: #ff6b6b;
+            background: color-mix(in srgb, var(--error-text) 15%, transparent);
+            border: 1px solid var(--error-text);
+            color: var(--error-text);
             padding: 10px;
             border-radius: 4px;
             margin-bottom: 15px;
             font-size: 12px;
         }
         .batch-dialog-success {
-            background: #1f3d2f;
-            border: 1px solid #338b4d;
+            background: color-mix(in srgb, #6bff9b 15%, transparent);
+            border: 1px solid #6bff9b;
             color: #6bff9b;
             padding: 10px;
             border-radius: 4px;
@@ -195,7 +194,7 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
             gap: 10px;
             justify-content: flex-end;
             padding-top: 15px;
-            border-top: 1px solid #444;
+            border-top: 1px solid var(--border-color);
         }
         .batch-dialog-btn {
             padding: 8px 16px;
@@ -214,17 +213,17 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
             background: #0098ff;
         }
         .batch-dialog-btn-apply:disabled {
-            background: #444;
+            background: var(--border-color);
             cursor: not-allowed;
             opacity: 0.5;
         }
         .batch-dialog-btn-cancel {
-            background: #2d2d2d;
-            color: #e0e0e0;
-            border: 1px solid #444;
+            background: var(--comfy-input-bg);
+            color: var(--fg-color);
+            border: 1px solid var(--border-color);
         }
         .batch-dialog-btn-cancel:hover {
-            background: #3d3d3d;
+            background: var(--bg-color);
         }
     `;
 
@@ -288,7 +287,7 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
         const btn = document.createElement("button");
         btn.className = "batch-dialog-preset-btn";
         btn.textContent = `+${amount}`;
-        btn.innerHTML = `+${amount}<br><span style="font-size: 10px; color: #888;">Result: ${currentCount + amount}</span>`;
+        btn.innerHTML = `+${amount}<br><span style="font-size: 10px; color: var(--descrip-text);">Result: ${currentCount + amount}</span>`;
         btn.onclick = () => {
             const resultCount = currentCount + amount;
             if (resultCount > maxInputs) {
@@ -348,7 +347,7 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
         const btn = document.createElement("button");
         btn.className = "batch-dialog-preset-btn";
         btn.textContent = `-${amount}`;
-        btn.innerHTML = `-${amount}<br><span style="font-size: 10px; color: #888;">Result: ${currentCount - amount}</span>`;
+        btn.innerHTML = `-${amount}<br><span style="font-size: 10px; color: var(--descrip-text);">Result: ${currentCount - amount}</span>`;
         btn.onclick = () => {
             if (currentCount - amount < 1) {
                 showRemoveError(`Cannot remove ${amount} inputs. Must keep at least 1 input.`);
