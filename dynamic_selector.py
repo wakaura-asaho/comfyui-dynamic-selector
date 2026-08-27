@@ -2,6 +2,7 @@ from comfy_api.latest import io
 import re
 import logging
 from .define import define
+import random
 
 logger = logging.getLogger("DynamicSelector")
 
@@ -269,11 +270,13 @@ class DynamicTypeSelector(io.ComfyNode):
                 io.Boolean.Input(
                     id="use_bool_item",
                     display_name="use_bool_item",
+                    default=False,
                     tooltip="Use a true or false branch to select items.",
                 ),
                 io.Boolean.Input(
                     id="bool_item",
                     display_name="bool_item",
+                    default=False,
                     tooltip="Set to true to use the item_true as the output; false to use the item_false.",
                 ),
                 io.Int.Input(
@@ -296,28 +299,73 @@ class DynamicTypeSelector(io.ComfyNode):
                     display_mode=io.NumberDisplay.number,
                     tooltip="When set the bool_item to false, this item will be used as the output.",
                 ),
+                io.Boolean.Input(
+                    id="random_selection",
+                    display_name="random_selection",
+                    default=False,
+                    tooltip="Randomly select an item from the inputs.",
+                ),
             ],
             outputs=[SchemaDefineHelper.dynamic_output()],
             accept_all_inputs=True,
         )
 
+    @staticmethod
+    def _input_indices(kwargs: dict, require_value: bool = False) -> list[int]:
+        indices: list[int] = []
+        for key, val in kwargs.items():
+            if not key.startswith("input_"):
+                continue
+            suffix = key[6:]
+            if not suffix.isdigit():
+                continue
+            if require_value and val is None:
+                continue
+            indices.append(int(suffix))
+        indices.sort()
+        return indices
+
     @classmethod
-    def fingerprint_inputs(cls, select: int, **kwargs) -> int:
+    def fingerprint_inputs(
+        cls, select: int = 0, random_selection: bool = False, **kwargs
+    ) -> object:
+        if random_selection is not False:
+            return float("nan")
         return select
 
     @classmethod
     def validate_inputs(
         cls,
-        select: int,
-        use_bool_item: bool,
-        bool_item: bool,
-        item_true: int,
-        item_false: int,
+        select: int | None = None,
+        use_bool_item: bool = False,
+        bool_item: bool | None = False,
+        item_true: int | None = 0,
+        item_false: int | None = 0,
+        random_selection: bool | None = False,
         **kwargs,
     ) -> bool | str:
-        selected_index = (
-            select if not use_bool_item else (item_true if bool_item else item_false)
-        )
+        if random_selection:
+            if not cls._input_indices(kwargs):
+                return "At least one input must be connected."
+            return True
+        if random_selection is None:
+            return True
+
+        if use_bool_item:
+            if bool_item is None:
+                return True
+            selected_index = item_true if bool_item else item_false
+        else:
+            selected_index = select
+
+        if selected_index is None:
+            return True
+
+        try:
+            selected_index = int(selected_index)
+        except (TypeError, ValueError):
+            return f"Invalid select index: {selected_index}."
+
         input_key = f"input_{selected_index}"
         if input_key not in kwargs:
             return f"Selected input '{input_key}' must be connected."
@@ -332,27 +380,67 @@ class DynamicTypeSelector(io.ComfyNode):
         bool_item: bool,
         item_true: int,
         item_false: int,
+        random_selection: bool,
         **kwargs,
     ) -> io.NodeOutput:
-        index = (
-            select if not use_bool_item else (item_true if bool_item else item_false)
-        )
-        input_keys = [k for k in kwargs.keys() if k.startswith("input_")]
-        count = len(input_keys)
-
-        if index < 0 or index >= count:
-            raise IndexError(
-                f"DynamicTypeSelector: Index {index} is out of bound. The node has {count} input(s)."
+        indices = cls._input_indices(kwargs, require_value=True)
+        if not indices:
+            raise ValueError(
+                "DynamicTypeSelector: No valid inputs to select from."
             )
 
-        input_key = f"input_{index}"
-        val = kwargs.get(input_key, None)
+        if use_bool_item:
+            index = item_true if bool_item else item_false
+        elif random_selection:
+            index = random.choice(indices)
+        else:
+            index = select
+
+        try:
+            index = int(index)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"DynamicTypeSelector: Invalid index {index}."
+            ) from e
+
+        if index not in indices:
+            raise IndexError(
+                f"DynamicTypeSelector: Index {index} is out of bound. Connected inputs: {indices}."
+            )
+
+        val = kwargs.get(f"input_{index}")
         if val is None:
             raise ValueError(
-                f"DynamicTypeSelector: Selected input '{input_key}' is missing or not connected."
+                f"DynamicTypeSelector: Selected input 'input_{index}' is missing or not connected."
             )
-
         return io.NodeOutput(val)
+
+
+class DynamicWeightedSelector(io.ComfyNode):
+    """
+    Select one input from a set of dynamic inputs based on a weighted random selection.
+    """
+
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="DynamicWeightedSelector",
+            display_name="Dynamic Weighted Selector",
+            category=define.author,
+            is_experimental=True,
+            description="Select one input from a set of dynamic inputs based on a weighted random selection.",
+            inputs=[
+                SchemaDefineHelper.selection_input(
+                    id="select",
+                    tooltip="Output the item based on the zero-based index selection.",
+                ),
+                SchemaDefineHelper.dynamic_input(),
+            ],
+        )
+
+    @classmethod
+    def execute(cls, select: int, **kwargs) -> io.NodeOutput:
+        return io.NodeOutput(kwargs.get(f"input_{select}"))
 
 
 class DynamicCombo(io.ComfyNode):

@@ -62,7 +62,7 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -76,7 +76,7 @@ function showBatchInputDialog(node, maxInputs, selectionWidget, boolTrueItemInde
             padding: 20px;
             min-width: 400px;
             max-width: 500px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
             color: var(--fg-color);
         }
         .batch-dialog-title {
