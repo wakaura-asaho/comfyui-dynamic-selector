@@ -6,6 +6,7 @@ import random
 
 logger = logging.getLogger("DynamicSelector")
 
+dynamic_input_prefix = define.di_prefix
 
 class DynamicGroup(io.ComfyNode):
     """
@@ -123,7 +124,7 @@ class DynamicGroup(io.ComfyNode):
         if kwargs and len(kwargs) > 0:
             idx = 0
             while True:
-                key = f"input_{idx}"
+                key = f"{dynamic_input_prefix}{idx}"
                 if key not in kwargs:
                     break
                 val = kwargs[key]
@@ -148,6 +149,7 @@ class DynamicGroupSelector(io.ComfyNode):
             is_experimental=True,
             description="Select an item from a dynamic group.",
             inputs=[
+                SchemaDefineHelper.weighted_randomizer_input(),
                 SchemaDefineHelper.selection_input(
                     id="select_group",
                     tooltip="Zero-based index of which GROUP input to select.",
@@ -159,9 +161,17 @@ class DynamicGroupSelector(io.ComfyNode):
                 io.Boolean.Input(
                     id="type_strict",
                     display_name="Type Strict",
+                    default=False,
                     tooltip="If different types of data get passed into the node, raise an error.",
                 ),
-                io.Custom("GROUP").Input(id="input_0", display_name="input_0"),
+                SchemaDefineHelper.random_selection_input(
+                    tooltip="Randomly select a group and an item from that group."
+                ),
+                io.Custom("GROUP").Input(
+                    id=f"{dynamic_input_prefix}0",
+                    display_name=f"{dynamic_input_prefix}0",
+                    optional=True,
+                ),
             ],
             outputs=[SchemaDefineHelper.dynamic_output()],
             accept_all_inputs=True,
@@ -176,7 +186,7 @@ class DynamicGroupSelector(io.ComfyNode):
         first_key = None
 
         # Identify and sort all input_N keys
-        input_keys = sorted([k for k in kwargs.keys() if k.startswith("input_")])
+        input_keys = sorted([k for k in kwargs.keys() if k.startswith(dynamic_input_prefix)])
 
         for key in input_keys:
             val = kwargs[key]
@@ -198,17 +208,57 @@ class DynamicGroupSelector(io.ComfyNode):
 
         return True
 
+    @staticmethod
+    def _input_indices(kwargs: dict, require_value: bool = False) -> list[int]:
+        indices: list[int] = []
+        for key, val in kwargs.items():
+            if not key.startswith(dynamic_input_prefix):
+                continue
+            suffix = key[len(dynamic_input_prefix):]
+            if not suffix.isdigit():
+                continue
+            if require_value and val is None:
+                continue
+            indices.append(int(suffix))
+        indices.sort()
+        return indices
+
+    @classmethod
+    def _group_item_count(cls, group) -> int:
+        if group is None:
+            return 0
+        data = group["data"] if isinstance(group, dict) and "data" in group else group
+        return len(data) if data is not None else 0
+
     @classmethod
     def fingerprint_inputs(
-        cls, select_group: int, index: int, type_strict: bool, **kwargs
-    ) -> tuple[int, int]:
+        cls,
+        select_group: int,
+        index: int,
+        type_strict: bool,
+        random_selection: bool = False,
+        **kwargs,
+    ) -> object:
+        if random_selection is not False:
+            return float("nan")
         return (select_group, index)
 
     @classmethod
     def validate_inputs(
-        cls, select_group: int, index: int, type_strict: bool, **kwargs
+        cls,
+        select_group: int,
+        random_selection: bool | None = False,
+        **kwargs,
     ) -> bool | str:
-        group_key = f"input_{select_group}"
+        if random_selection:
+            group_indices = cls._input_indices(kwargs)
+            if not group_indices:
+                return "At least one group input must be connected."
+            return True
+        if random_selection is None:
+            return True
+
+        group_key = f"{dynamic_input_prefix}{select_group}"
         if group_key not in kwargs:
             return (
                 f"Input '{group_key}' must be connected for selection {select_group}."
@@ -218,10 +268,38 @@ class DynamicGroupSelector(io.ComfyNode):
 
     @classmethod
     def execute(
-        cls, select_group: int, index: int, type_strict: bool, **kwargs
+        cls,
+        select_group: int,
+        index: int,
+        type_strict: bool,
+        random_selection: bool,
+        weighted_randomizer: object | None = None,
+        **kwargs,
     ) -> io.NodeOutput:
         """Return the item at `index` from the group selected by `select_group`."""
-        group_key = f"input_{select_group}"
+        if random_selection:
+            group_indices = cls._input_indices(kwargs, require_value=True)
+            if not group_indices:
+                raise ValueError(
+                    "DynamicGroupSelector: No valid group inputs to select from."
+                )
+            nonempty = [
+                gi
+                for gi in group_indices
+                if cls._group_item_count(kwargs.get(f"{dynamic_input_prefix}{gi}")) > 0
+            ]
+            if not nonempty:
+                raise ValueError(
+                    "DynamicGroupSelector: No connected group contains items."
+                )
+            select_group = Randomizer.pick_random_index(
+                nonempty, weighted_randomizer, kwargs
+            )
+            index = random.randrange(
+                cls._group_item_count(kwargs.get(f"{dynamic_input_prefix}{select_group}"))
+            )
+
+        group_key = f"{dynamic_input_prefix}{select_group}"
         group = kwargs.get(group_key)
 
         data = group["data"] if isinstance(group, dict) and "data" in group else group
@@ -231,8 +309,6 @@ class DynamicGroupSelector(io.ComfyNode):
             else "plain_data"
         )
         count = len(data) if data is not None else 0
-
-        logger.info(f"E: {data}, type: {type}, len: {count}")
 
         valid = type_strict and cls._check_type_consistency(**kwargs) or not type_strict
         if valid:
@@ -262,6 +338,7 @@ class DynamicTypeSelector(io.ComfyNode):
             is_experimental=True,
             description="Select one input from a set of dynamic inputs.",
             inputs=[
+                SchemaDefineHelper.weighted_randomizer_input(),
                 SchemaDefineHelper.selection_input(
                     id="select",
                     tooltip="Output the item based on the zero-based index selection.",
@@ -299,11 +376,8 @@ class DynamicTypeSelector(io.ComfyNode):
                     display_mode=io.NumberDisplay.number,
                     tooltip="When set the bool_item to false, this item will be used as the output.",
                 ),
-                io.Boolean.Input(
-                    id="random_selection",
-                    display_name="random_selection",
-                    default=False,
-                    tooltip="Randomly select an item from the inputs.",
+                SchemaDefineHelper.random_selection_input(
+                    tooltip="Randomly select an item from the inputs."
                 ),
             ],
             outputs=[SchemaDefineHelper.dynamic_output()],
@@ -314,9 +388,9 @@ class DynamicTypeSelector(io.ComfyNode):
     def _input_indices(kwargs: dict, require_value: bool = False) -> list[int]:
         indices: list[int] = []
         for key, val in kwargs.items():
-            if not key.startswith("input_"):
+            if not key.startswith(dynamic_input_prefix):
                 continue
-            suffix = key[6:]
+            suffix = key[len(dynamic_input_prefix):]
             if not suffix.isdigit():
                 continue
             if require_value and val is None:
@@ -366,7 +440,7 @@ class DynamicTypeSelector(io.ComfyNode):
         except (TypeError, ValueError):
             return f"Invalid select index: {selected_index}."
 
-        input_key = f"input_{selected_index}"
+        input_key = f"{dynamic_input_prefix}{selected_index}"
         if input_key not in kwargs:
             return f"Selected input '{input_key}' must be connected."
 
@@ -381,6 +455,7 @@ class DynamicTypeSelector(io.ComfyNode):
         item_true: int,
         item_false: int,
         random_selection: bool,
+        weighted_randomizer: object | None = None,
         **kwargs,
     ) -> io.NodeOutput:
         indices = cls._input_indices(kwargs, require_value=True)
@@ -392,7 +467,9 @@ class DynamicTypeSelector(io.ComfyNode):
         if use_bool_item:
             index = item_true if bool_item else item_false
         elif random_selection:
-            index = random.choice(indices)
+            index = Randomizer.pick_random_index(
+                indices, weighted_randomizer, kwargs
+            )
         else:
             index = select
 
@@ -408,40 +485,51 @@ class DynamicTypeSelector(io.ComfyNode):
                 f"DynamicTypeSelector: Index {index} is out of bound. Connected inputs: {indices}."
             )
 
-        val = kwargs.get(f"input_{index}")
+        input_key = f"{dynamic_input_prefix}{index}"
+        val = kwargs.get(input_key)
         if val is None:
             raise ValueError(
-                f"DynamicTypeSelector: Selected input 'input_{index}' is missing or not connected."
+                f"DynamicTypeSelector: Selected input '{input_key}' is missing or not connected."
             )
         return io.NodeOutput(val)
 
 
-class DynamicWeightedSelector(io.ComfyNode):
+class WeightedRandomizer(io.ComfyNode):
     """
-    Select one input from a set of dynamic inputs based on a weighted random selection.
+    Provides per-input weights for Dynamic Type Selector random selection.
     """
 
     @classmethod
     def define_schema(cls):
         return io.Schema(
-            node_id="DynamicWeightedSelector",
-            display_name="Dynamic Weighted Selector",
+            node_id="WeightedRandomizer",
+            display_name="Weighted Randomizer",
             category=define.author,
             is_experimental=True,
-            description="Select one input from a set of dynamic inputs based on a weighted random selection.",
-            inputs=[
-                SchemaDefineHelper.selection_input(
-                    id="select",
-                    tooltip="Output the item based on the zero-based index selection.",
-                ),
-                SchemaDefineHelper.dynamic_input(),
+            description="Provides per-input weights for Dynamic Type Selector random selection.",
+            inputs=[SchemaDefineHelper.weight_input()],
+            outputs=[
+                io.Custom("W_RANDOMIZER").Output(id="weighted_randomizer", display_name="W_RANDOMIZER"),
             ],
+            accept_all_inputs=True,
         )
 
     @classmethod
-    def execute(cls, select: int, **kwargs) -> io.NodeOutput:
-        return io.NodeOutput(kwargs.get(f"input_{select}"))
-
+    def execute(cls, **kwargs) -> io.NodeOutput:
+        entries: list[tuple[int, int]] = []
+        for key, val in kwargs.items():
+            if not key.startswith(dynamic_input_prefix):
+                continue
+            suffix = key[len(dynamic_input_prefix):]
+            if not suffix.isdigit():
+                continue
+            try:
+                v = int(val)
+            except (TypeError, ValueError):
+                continue
+            entries.append((int(suffix), v))
+        entries.sort(key=lambda e: e[0])
+        return io.NodeOutput([v for _, v in entries])
 
 class DynamicCombo(io.ComfyNode):
     """
@@ -457,6 +545,7 @@ class DynamicCombo(io.ComfyNode):
             is_experimental=True,
             description="Create a dynamic combo box from a string list.",
             inputs=[
+                SchemaDefineHelper.weighted_randomizer_input(),
                 io.Combo.Input("choice", options=[]),
                 io.String.Input("choice_list", multiline=True),
                 io.Combo.Input(
@@ -476,6 +565,9 @@ class DynamicCombo(io.ComfyNode):
                     "custom_delimiter",
                     default="|",
                     tooltip="Used when split_mode is 'custom' or 'regex'",
+                ),
+                SchemaDefineHelper.random_selection_input(
+                    tooltip="Randomly select an option from the list."
                 ),
             ],
             outputs=[
@@ -511,14 +603,33 @@ class DynamicCombo(io.ComfyNode):
         return [x.strip() for x in raw if x.strip()]
 
     @classmethod
+    def fingerprint_inputs(
+        cls,
+        choice: str = "",
+        random_selection: bool = False,
+        **kwargs,
+    ) -> object:
+        if random_selection is not False:
+            return float("nan")
+        return choice
+
+    @classmethod
     def validate_inputs(
         cls,
         choice: str,
         choice_list: str = "",
         split_mode: str = "newline",
         custom_delimiter: str = "",
+        random_selection: bool | None = False,
         **kwargs,
     ) -> bool:
+        if random_selection:
+            items = cls._parse_list(choice_list, split_mode, custom_delimiter)
+            if not items:
+                return "choice_list must produce at least one option for random selection."
+            return True
+        if random_selection is None:
+            return True
         if not choice_list:
             return True
 
@@ -536,21 +647,77 @@ class DynamicCombo(io.ComfyNode):
         choice_list: str = "",
         split_mode: str = "newline",
         custom_delimiter: str = "|",
+        random_selection: bool = False,
+        weighted_randomizer: object | None = None,
+        **kwargs,
     ) -> io.NodeOutput:
         items = cls._parse_list(choice_list, split_mode, custom_delimiter)
 
         if not items:
             return io.NodeOutput("", 0, "")
 
-        if choice not in items:
-            choice = items[0]
-
-        index = items.index(choice)
+        if random_selection:
+            indices = list(range(len(items)))
+            index = Randomizer.pick_random_index(
+                indices, weighted_randomizer, kwargs
+            )
+            choice = items[index]
+        else:
+            if choice not in items:
+                choice = items[0]
+            index = items.index(choice)
 
         normalized_list = "\n".join(items)
 
         return io.NodeOutput(choice, index, normalized_list)
 
+class Randomizer:
+    @staticmethod
+    def resolve_weighted_randomizer(
+        weighted_randomizer: object | None, kwargs: dict
+    ) -> object | None:
+        if weighted_randomizer is not None:
+            return weighted_randomizer
+        return kwargs.get("weighted_randomizer")
+
+    @staticmethod
+    def weights_from_randomizer(weighted_randomizer: object) -> list[int] | None:
+        if weighted_randomizer is None:
+            return None
+        data = weighted_randomizer
+        if isinstance(data, tuple) and len(data) == 1:
+            data = data[0]
+        if not isinstance(data, list):
+            return None
+        weights: list[int] = []
+        for item in data:
+            try:
+                weights.append(max(0, int(item)))
+            except (TypeError, ValueError):
+                weights.append(0)
+        return weights
+
+    @staticmethod
+    def pick_random_index(
+        indices: list[int],
+        weighted_randomizer: object | None,
+        kwargs: dict,
+    ) -> int:
+        wr = Randomizer.resolve_weighted_randomizer(weighted_randomizer, kwargs)
+        weights_list = Randomizer.weights_from_randomizer(wr)
+        if weights_list is None:
+            return random.choice(indices)
+        pool: list[int] = []
+        wts: list[int] = []
+        for i in indices:
+            w = weights_list[i] if i < len(weights_list) else 1
+            if w <= 0:
+                continue
+            pool.append(i)
+            wts.append(w)
+        if not pool:
+            return random.choice(indices)
+        return random.choices(pool, weights=wts, k=1)[0]
 
 class SchemaDefineHelper:
     @staticmethod
@@ -569,8 +736,42 @@ class SchemaDefineHelper:
         )
 
     @staticmethod
-    def dynamic_input(id: str = "input_0") -> io.AnyType.Input:
-        return io.AnyType.Input(id=id, display_name=id)
+    def dynamic_input(id: str = dynamic_input_prefix + "0") -> io.AnyType.Input:
+        return io.AnyType.Input(id=id, display_name=id, optional=True)
+
+    @staticmethod
+    def random_selection_input(id="random_selection", tooltip: str = "") -> io.Boolean.Input:
+        return io.Boolean.Input(
+            id=id,
+            display_name="random_selection",
+            default=False,
+            tooltip=tooltip,
+        )
+
+    @staticmethod
+    def weight_input(
+        id: str = dynamic_input_prefix + "0",
+        default: int = 1,
+    ) -> io.Int.Input:
+        return io.Int.Input(
+            id=id,
+            display_name=id,
+            default=default,
+            min=0,
+            max=define.max_inputs,
+            step=1,
+            display_mode=io.NumberDisplay.number,
+            optional=True,
+        )
+
+    @staticmethod
+    def weighted_randomizer_input(id: str = "weighted_randomizer") -> io.Input:
+        return io.Custom("W_RANDOMIZER").Input(
+            id=id,
+            display_name=id,
+            tooltip="Provide per-input weights for random selection.",
+            optional=True,
+        )
 
     @staticmethod
     def dynamic_output(id: str = "output") -> io.AnyType.Output:

@@ -1,0 +1,1269 @@
+{
+  "id": "50bb093d-7c7a-422d-bc4f-e1e7c6ba3444",
+  "revision": 0,
+  "last_node_id": 24,
+  "last_link_id": 31,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "DynamicCombo",
+      "pos": [
+        -310,
+        1340
+      ],
+      "size": [
+        260,
+        240
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "weighted_randomizer",
+          "shape": 7,
+          "type": "W_RANDOMIZER",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            5
+          ]
+        },
+        {
+          "name": "INDEX",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "FULL_LIST",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DynamicCombo"
+      },
+      "widgets_values": [
+        "Apple",
+        "Apple\nBanana\nOrange\nPear",
+        "newline",
+        "|",
+        true
+      ],
+      "widgets_values_named": {
+        "choice": "Apple",
+        "choice_list": "Apple\nBanana\nOrange\nPear",
+        "split_mode": "newline",
+        "custom_delimiter": "|",
+        "random_selection": true
+      }
+    },
+    {
+      "id": 7,
+      "type": "WeightedRandomizer",
+      "pos": [
+        -600,
+        1340
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "W_RANDOMIZER",
+          "type": "W_RANDOMIZER",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "WeightedRandomizer"
+      },
+      "widgets_values": [
+        50
+      ],
+      "widgets_values_named": {
+        "input_0": 50
+      }
+    },
+    {
+      "id": 13,
+      "type": "PreviewAny",
+      "pos": [
+        810,
+        190
+      ],
+      "size": [
+        400,
+        260
+      ],
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 9,
+      "type": "Note",
+      "pos": [
+        -470,
+        390
+      ],
+      "size": [
+        270,
+        140
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "If the randomizer node is shared by more than two widgets with auto-sync on, it expands to the number with the most inputs.\n\n"
+      ],
+      "widgets_values_named": {
+        "text": "If the randomizer node is shared by more than two widgets with auto-sync on, it expands to the number with the most inputs.\n\n"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 14,
+      "type": "PrimitiveString",
+      "pos": [
+        -180,
+        450
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            11
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "stormy"
+      ],
+      "widgets_values_named": {
+        "value": "stormy"
+      }
+    },
+    {
+      "id": 15,
+      "type": "PrimitiveString",
+      "pos": [
+        -180,
+        550
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "cloudy"
+      ],
+      "widgets_values_named": {
+        "value": "cloudy"
+      }
+    },
+    {
+      "id": 12,
+      "type": "PrimitiveString",
+      "pos": [
+        -180,
+        350
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "sunny"
+      ],
+      "widgets_values_named": {
+        "value": "sunny"
+      }
+    },
+    {
+      "id": 10,
+      "type": "PrimitiveString",
+      "pos": [
+        -180,
+        250
+      ],
+      "size": [
+        270,
+        60
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "raining"
+      ],
+      "widgets_values_named": {
+        "value": "raining"
+      }
+    },
+    {
+      "id": 16,
+      "type": "DynamicGroup",
+      "pos": [
+        -180,
+        720
+      ],
+      "size": [
+        270,
+        86
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "input_0",
+          "shape": 7,
+          "type": "STRING",
+          "link": 15
+        },
+        {
+          "name": "input_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": 17
+        },
+        {
+          "name": "input_2",
+          "shape": 7,
+          "type": "STRING",
+          "link": 18
+        },
+        {
+          "name": "input_3",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GROUP_OUTPUT",
+          "type": "GROUP",
+          "links": [
+            14
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DynamicGroup"
+      }
+    },
+    {
+      "id": 17,
+      "type": "DynamicGroup",
+      "pos": [
+        -180,
+        860
+      ],
+      "size": [
+        270,
+        86
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "input_0",
+          "shape": 7,
+          "type": "STRING",
+          "link": 20
+        },
+        {
+          "name": "input_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": 21
+        },
+        {
+          "name": "input_2",
+          "shape": 7,
+          "type": "STRING",
+          "link": 22
+        },
+        {
+          "name": "input_3",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GROUP_OUTPUT",
+          "type": "GROUP",
+          "links": [
+            23
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DynamicGroup"
+      }
+    },
+    {
+      "id": 3,
+      "type": "DynamicGroupSelector",
+      "pos": [
+        110,
+        650
+      ],
+      "size": [
+        260,
+        240
+      ],
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "weighted_randomizer",
+          "shape": 7,
+          "type": "W_RANDOMIZER",
+          "link": 3
+        },
+        {
+          "name": "input_0",
+          "shape": 7,
+          "type": "GROUP",
+          "link": 14
+        },
+        {
+          "name": "input_1",
+          "shape": 7,
+          "type": "GROUP",
+          "link": 23
+        },
+        {
+          "name": "input_2",
+          "shape": 7,
+          "type": "GROUP",
+          "link": null
+        },
+        {
+          "name": "input_3",
+          "shape": 7,
+          "type": "GROUP",
+          "link": null
+        },
+        {
+          "name": "input_4",
+          "shape": 7,
+          "type": "GROUP",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "type": "*",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DynamicGroupSelector"
+      },
+      "widgets_values": [
+        0,
+        0,
+        false,
+        false
+      ],
+      "widgets_values_named": {
+        "select_group": 0,
+        "index": 0,
+        "type_strict": false,
+        "random_selection": false
+      }
+    },
+    {
+      "id": 2,
+      "type": "DynamicTypeSelector",
+      "pos": [
+        110,
+        190
+      ],
+      "size": [
+        260,
+        278
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "weighted_randomizer",
+          "shape": 7,
+          "type": "W_RANDOMIZER",
+          "link": 2
+        },
+        {
+          "name": "input_0",
+          "shape": 7,
+          "type": "STRING",
+          "link": 8
+        },
+        {
+          "name": "input_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": 10
+        },
+        {
+          "name": "input_2",
+          "shape": 7,
+          "type": "STRING",
+          "link": 11
+        },
+        {
+          "name": "input_3",
+          "shape": 7,
+          "type": "STRING",
+          "link": 12
+        },
+        {
+          "name": "input_4",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "type": "STRING",
+          "links": [
+            13
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DynamicTypeSelector"
+      },
+      "widgets_values": [
+        0,
+        false,
+        false,
+        0,
+        0,
+        true
+      ],
+      "widgets_values_named": {
+        "select": 0,
+        "use_bool_item": false,
+        "bool_item": false,
+        "item_true": 0,
+        "item_false": 0,
+        "random_selection": true
+      }
+    },
+    {
+      "id": 18,
+      "type": "PrimitiveString",
+      "pos": [
+        -510,
+        690
+      ],
+      "size": [
+        270,
+        60
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            15,
+            24
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "suit"
+      ],
+      "widgets_values_named": {
+        "value": "suit"
+      }
+    },
+    {
+      "id": 19,
+      "type": "PrimitiveString",
+      "pos": [
+        -510,
+        790
+      ],
+      "size": [
+        270,
+        60
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            17,
+            25
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "raincoat"
+      ],
+      "widgets_values_named": {
+        "value": "raincoat"
+      }
+    },
+    {
+      "id": 20,
+      "type": "PrimitiveString",
+      "pos": [
+        -510,
+        890
+      ],
+      "size": [
+        270,
+        60
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            18,
+            26
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "umbrella"
+      ],
+      "widgets_values_named": {
+        "value": "umbrella"
+      }
+    },
+    {
+      "id": 21,
+      "type": "PrimitiveString",
+      "pos": [
+        -510,
+        1000
+      ],
+      "size": [
+        270,
+        60
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            20,
+            27
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "gun"
+      ],
+      "widgets_values_named": {
+        "value": "gun"
+      }
+    },
+    {
+      "id": 22,
+      "type": "PrimitiveString",
+      "pos": [
+        -510,
+        1100
+      ],
+      "size": [
+        270,
+        60
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            21,
+            28
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "club"
+      ],
+      "widgets_values_named": {
+        "value": "club"
+      }
+    },
+    {
+      "id": 23,
+      "type": "PrimitiveString",
+      "pos": [
+        -510,
+        1200
+      ],
+      "size": [
+        270,
+        60
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            22,
+            29
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "chain"
+      ],
+      "widgets_values_named": {
+        "value": "chain"
+      }
+    },
+    {
+      "id": 24,
+      "type": "DynamicTypeSelector",
+      "pos": [
+        110,
+        950
+      ],
+      "size": [
+        260,
+        318
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "weighted_randomizer",
+          "shape": 7,
+          "type": "W_RANDOMIZER",
+          "link": null
+        },
+        {
+          "name": "input_0",
+          "shape": 7,
+          "type": "STRING",
+          "link": 24
+        },
+        {
+          "name": "input_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": 25
+        },
+        {
+          "name": "input_2",
+          "shape": 7,
+          "type": "STRING",
+          "link": 26
+        },
+        {
+          "name": "input_3",
+          "shape": 7,
+          "type": "STRING",
+          "link": 27
+        },
+        {
+          "name": "input_4",
+          "shape": 7,
+          "type": "STRING",
+          "link": 28
+        },
+        {
+          "name": "input_5",
+          "shape": 7,
+          "type": "STRING",
+          "link": 29
+        },
+        {
+          "name": "input_6",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "type": "STRING",
+          "links": [
+            30
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DynamicTypeSelector"
+      },
+      "widgets_values": [
+        0,
+        false,
+        false,
+        0,
+        0,
+        true
+      ],
+      "widgets_values_named": {
+        "select": 0,
+        "use_bool_item": false,
+        "bool_item": false,
+        "item_true": 0,
+        "item_false": 0,
+        "random_selection": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "WeightedRandomizer",
+      "pos": [
+        -470,
+        190
+      ],
+      "size": [
+        270,
+        160
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "W_RANDOMIZER",
+          "type": "W_RANDOMIZER",
+          "links": [
+            2,
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "WeightedRandomizer"
+      },
+      "widgets_values": [
+        35,
+        17,
+        1,
+        1,
+        1
+      ],
+      "widgets_values_named": {
+        "input_0": 35,
+        "input_1": 17,
+        "input_2": 1,
+        "input_3": 1,
+        "input_4": 1
+      }
+    },
+    {
+      "id": 8,
+      "type": "Note",
+      "pos": [
+        -600,
+        1440
+      ],
+      "size": [
+        270,
+        140
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "If the randomizer widgets are fewer than the available items, the rest of the items will be treated as `1`"
+      ],
+      "widgets_values_named": {
+        "text": "If the randomizer widgets are fewer than the available items, the rest of the items will be treated as `1`"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 6,
+      "type": "PreviewAny",
+      "pos": [
+        -30,
+        1340
+      ],
+      "size": [
+        400,
+        240
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            31
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 11,
+      "type": "StringFormat",
+      "pos": [
+        390,
+        190
+      ],
+      "size": [
+        400,
+        280
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "shape": 7,
+          "type": "*",
+          "link": 13
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "*",
+          "link": 19
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "*",
+          "link": 30
+        },
+        {
+          "name": "values.d",
+          "shape": 7,
+          "type": "*",
+          "link": 31
+        },
+        {
+          "name": "values.e",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StringFormat"
+      },
+      "widgets_values": [
+        "It is a {a} day.\nWe should go home and grab a {b}.\nBut what if we don't have a {b}?\nWell, in that case, maybe we can use a {c} instead?\nOr \"{d}\", even better!"
+      ],
+      "widgets_values_named": {
+        "f_string": "It is a {a} day.\nWe should go home and grab a {b}.\nBut what if we don't have a {b}?\nWell, in that case, maybe we can use a {c} instead?\nOr \"{d}\", even better!"
+      }
+    }
+  ],
+  "links": [
+    [
+      2,
+      4,
+      0,
+      2,
+      0,
+      "W_RANDOMIZER"
+    ],
+    [
+      3,
+      4,
+      0,
+      3,
+      0,
+      "W_RANDOMIZER"
+    ],
+    [
+      5,
+      1,
+      0,
+      6,
+      0,
+      "STRING"
+    ],
+    [
+      6,
+      7,
+      0,
+      1,
+      0,
+      "W_RANDOMIZER"
+    ],
+    [
+      8,
+      10,
+      0,
+      2,
+      1,
+      "STRING"
+    ],
+    [
+      9,
+      11,
+      0,
+      13,
+      0,
+      "STRING"
+    ],
+    [
+      10,
+      12,
+      0,
+      2,
+      2,
+      "STRING"
+    ],
+    [
+      11,
+      14,
+      0,
+      2,
+      3,
+      "STRING"
+    ],
+    [
+      12,
+      15,
+      0,
+      2,
+      4,
+      "STRING"
+    ],
+    [
+      13,
+      2,
+      0,
+      11,
+      0,
+      "STRING"
+    ],
+    [
+      14,
+      16,
+      0,
+      3,
+      1,
+      "GROUP"
+    ],
+    [
+      15,
+      18,
+      0,
+      16,
+      0,
+      "STRING"
+    ],
+    [
+      17,
+      19,
+      0,
+      16,
+      1,
+      "STRING"
+    ],
+    [
+      18,
+      20,
+      0,
+      16,
+      2,
+      "STRING"
+    ],
+    [
+      19,
+      3,
+      0,
+      11,
+      1,
+      "*"
+    ],
+    [
+      20,
+      21,
+      0,
+      17,
+      0,
+      "STRING"
+    ],
+    [
+      21,
+      22,
+      0,
+      17,
+      1,
+      "STRING"
+    ],
+    [
+      22,
+      23,
+      0,
+      17,
+      2,
+      "STRING"
+    ],
+    [
+      23,
+      17,
+      0,
+      3,
+      2,
+      "GROUP"
+    ],
+    [
+      24,
+      18,
+      0,
+      24,
+      1,
+      "STRING"
+    ],
+    [
+      25,
+      19,
+      0,
+      24,
+      2,
+      "STRING"
+    ],
+    [
+      26,
+      20,
+      0,
+      24,
+      3,
+      "STRING"
+    ],
+    [
+      27,
+      21,
+      0,
+      24,
+      4,
+      "STRING"
+    ],
+    [
+      28,
+      22,
+      0,
+      24,
+      5,
+      "STRING"
+    ],
+    [
+      29,
+      23,
+      0,
+      24,
+      6,
+      "STRING"
+    ],
+    [
+      30,
+      24,
+      0,
+      11,
+      2,
+      "STRING"
+    ],
+    [
+      31,
+      6,
+      0,
+      11,
+      3,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6830134553650707,
+      "offset": [
+        816.5010053453137,
+        150.61650641965187
+      ]
+    },
+    "frontendVersion": "1.51.9",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

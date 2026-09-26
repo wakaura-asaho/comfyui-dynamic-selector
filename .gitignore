@@ -5,3 +5,4 @@
 /fonts/*.otf
 !/fonts/ShareTechMono-Regular.ttf
 .vscode/
+*.7z

@@ -5,7 +5,6 @@ from .define import define
 
 logger = logging.getLogger("DynamicIterator")
 
-
 class FloatIterator(io.ComfyNode):
     """
     Iterate through a collection of primitive value types: float.
@@ -23,22 +22,22 @@ class FloatIterator(io.ComfyNode):
                     id="initialization",
                     display_name="Start",
                     default=0.0,
-                    min=-9999999.0,
-                    max=9999999.0,
+                    min=define.min_itr,
+                    max=define.max_itr,
                 ),
                 io.Float.Input(
                     id="condition",
                     display_name="Stop",
                     default=10.0,
-                    min=-9999999.0,
-                    max=9999999.0,
+                    min=define.min_itr,
+                    max=define.max_itr,
                 ),
                 io.Float.Input(
                     id="update",
                     display_name="Increment",
                     default=0.5,
-                    min=-9999999.0,
-                    max=9999999.0,
+                    min=define.min_itr,
+                    max=define.max_itr,
                 ),
             ],
             outputs=[
@@ -103,22 +102,22 @@ class IntIterator(io.ComfyNode):
                     id="initialization",
                     display_name="Start",
                     default=0,
-                    min=-9999999,
-                    max=9999999,
+                    min=define.min_itr,
+                    max=define.max_itr,
                 ),
                 io.Int.Input(
                     id="condition",
                     display_name="Stop",
                     default=10,
-                    min=-9999999,
-                    max=9999999,
+                    min=define.min_itr,
+                    max=define.max_itr,
                 ),
                 io.Int.Input(
                     id="update",
                     display_name="Increment",
                     default=1,
-                    min=-9999999,
-                    max=9999999,
+                    min=define.min_itr,
+                    max=define.max_itr,
                 ),
             ],
             outputs=[
