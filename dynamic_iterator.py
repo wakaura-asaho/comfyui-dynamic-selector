@@ -3,7 +3,7 @@ import re
 import logging
 from .define import define
 
-logger = logging.getLogger("DynamicIterator")
+logger = logging.getLogger(define.logger_name)
 
 class FloatIterator(io.ComfyNode):
     """

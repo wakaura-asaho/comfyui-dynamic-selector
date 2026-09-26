@@ -8,14 +8,14 @@ from .dynamic_selector import WeightedRandomizer, DynamicGroup, DynamicGroupSele
 from .dynamic_iterator import FloatIterator, IntIterator, StringIterator
 from .define import define
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(define.logger_name)
 
 folder_paths.add_model_folder_path(define.author, os.path.join(folder_paths.models_dir, define.author))
 
 WEB_DIRECTORY = "./web"
 __all__ = ['WEB_DIRECTORY']
 
-class DynamicSelector(ComfyExtension):
+class DynamicSelectorExtension(ComfyExtension):
     async def get_node_list(self) -> list[type[io.ComfyNode]]:
         return [
             FloatIterator,
@@ -28,8 +28,8 @@ class DynamicSelector(ComfyExtension):
             DynamicCombo
         ]
 
-async def comfy_entrypoint() -> DynamicSelector:
-    return DynamicSelector()
+async def comfy_entrypoint() -> DynamicSelectorExtension:
+    return DynamicSelectorExtension()
 
 _SETTINGS_PATH = pathlib.Path(__file__).parent / "ds_settings.json"
 
@@ -46,13 +46,15 @@ def _setup_settings_api() -> None:
         from aiohttp import web
         from server import PromptServer
 
-        @PromptServer.instance.routes.get("/api/wakaura/dynamic-selector/settings")
+        settings_path = "/api/wakaura/dynamic-selector/settings"
+        
+        @PromptServer.instance.routes.get(settings_path)
         async def get_dynamic_selector_settings(request):
             data = _read_settings_json()
             data["max_inputs"] = define.max_inputs
             return web.json_response(data)
 
-        @PromptServer.instance.routes.post("/api/wakaura/dynamic-selector/settings")
+        @PromptServer.instance.routes.post(settings_path)
         async def post_dynamic_selector_settings(request):
             try:
                 patch = await request.json()

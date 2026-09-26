@@ -4,7 +4,7 @@ import logging
 from .define import define
 import random
 
-logger = logging.getLogger("DynamicSelector")
+logger = logging.getLogger(define.logger_name)
 
 dynamic_input_prefix = define.di_prefix
 
