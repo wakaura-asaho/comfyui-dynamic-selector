@@ -1,9 +1,7 @@
 from comfy_api.latest import io
-import re
-import logging
 from .define import define
+from .dynamic_selector import SchemaDefineHelper
 
-logger = logging.getLogger(define.logger_name)
 
 class FloatIterator(io.ComfyNode):
     """
@@ -18,27 +16,9 @@ class FloatIterator(io.ComfyNode):
             description="Iterate through a collection of primitive value types: float.",
             category=define.author,
             inputs=[
-                io.Float.Input(
-                    id="initialization",
-                    display_name="Start",
-                    default=0.0,
-                    min=define.min_itr,
-                    max=define.max_itr,
-                ),
-                io.Float.Input(
-                    id="condition",
-                    display_name="Stop",
-                    default=10.0,
-                    min=define.min_itr,
-                    max=define.max_itr,
-                ),
-                io.Float.Input(
-                    id="update",
-                    display_name="Increment",
-                    default=0.5,
-                    min=define.min_itr,
-                    max=define.max_itr,
-                ),
+                SchemaDefineHelper.iterator_float_input("initialization", "Start", 0.0),
+                SchemaDefineHelper.iterator_float_input("condition", "Stop", 10.0),
+                SchemaDefineHelper.iterator_float_input("update", "Increment", 0.5),
             ],
             outputs=[
                 io.Float.Output(
@@ -64,13 +44,21 @@ class FloatIterator(io.ComfyNode):
 
     @classmethod
     def validate_inputs(
-        cls, initialization: float, condition: float, update: float, **kwargs
+        cls,
+        initialization: float,
+        condition: float,
+        update: float,
+        **kwargs,
     ) -> bool | str:
         return cls.check_valid_condition(initialization, condition, update)
 
     @classmethod
     def execute(
-        cls, initialization: float, condition: float, update: float, **kwargs
+        cls,
+        initialization: float,
+        condition: float,
+        update: float,
+        **kwargs,
     ) -> io.NodeOutput:
         values = []
         current = initialization
@@ -98,27 +86,9 @@ class IntIterator(io.ComfyNode):
             description="Iterate through a range of integers.",
             category=define.author,
             inputs=[
-                io.Int.Input(
-                    id="initialization",
-                    display_name="Start",
-                    default=0,
-                    min=define.min_itr,
-                    max=define.max_itr,
-                ),
-                io.Int.Input(
-                    id="condition",
-                    display_name="Stop",
-                    default=10,
-                    min=define.min_itr,
-                    max=define.max_itr,
-                ),
-                io.Int.Input(
-                    id="update",
-                    display_name="Increment",
-                    default=1,
-                    min=define.min_itr,
-                    max=define.max_itr,
-                ),
+                SchemaDefineHelper.iterator_int_input("initialization", "Start", 0),
+                SchemaDefineHelper.iterator_int_input("condition", "Stop", 10),
+                SchemaDefineHelper.iterator_int_input("update", "Increment", 1),
             ],
             outputs=[
                 io.Int.Output(
@@ -144,13 +114,21 @@ class IntIterator(io.ComfyNode):
 
     @classmethod
     def validate_inputs(
-        cls, initialization: int, condition: int, update: int, **kwargs
+        cls,
+        initialization: int,
+        condition: int,
+        update: int,
+        **kwargs,
     ) -> bool | str:
         return cls.check_valid_condition(initialization, condition, update)
 
     @classmethod
     def execute(
-        cls, initialization: int, condition: int, update: int, **kwargs
+        cls,
+        initialization: int,
+        condition: int,
+        update: int,
+        **kwargs,
     ) -> io.NodeOutput:
         return io.NodeOutput(list(range(initialization, condition, update)))
 

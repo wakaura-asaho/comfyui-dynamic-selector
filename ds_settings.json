@@ -2,5 +2,7 @@
     "_comment": "Global UI settings for comfyui-dynamic-selector (synced from ComfyUI Settings).",
     "dynamic_socket_growth": true,
     "auto_collapse_empty_inputs": false,
-    "weighted_randomizer_sync_input_count": true
+    "weighted_randomizer_sync_input_count": true,
+    "iterator_execution_break_seconds": 5,
+    "iterator_execution_break_extra_node_types": "KSampler (Efficient),KSampler Adv. (Efficient)"
 }

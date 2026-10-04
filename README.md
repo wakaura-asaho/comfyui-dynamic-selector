@@ -17,7 +17,8 @@ An advanced "Switch" or "Router" node that can handle **any** data type (Images,
 * **Smart Type Matching:** The node keeps its output type in sync with connected inputs, resetting to wildcard when nothing is connected and locking to the first connected input type once a branch is attached.
 * **Lazy Evaluation:** Only the selected branch is evaluated, saving processing time.
 * **Boolean Toggle:** When `use_bool_item` is on, it switches between `item_true` and `item_false` indices instead of the `select` index (`select` is ignored while the toggle is on).
-* **Random selection:** Enable `random_selection` to pick a connected `input_N` at run time. Connect an optional **Weighted Randomizer** to bias which index is chosen (see below). With no randomizer connected, every non-empty candidate index has equal chance.
+* **Random selection:** Enable `random_selection` to pick a connected `input_N` at run time. Connect an optional **Weighted Randomizer** to bias which index is chosen (see below). With no randomizer connected, every non-empty candidate index has equal chance. When random mode is on, manual selection widgets (`select`, boolean index widgets) are disabled in the UI.
+* **Index output:** `index` (INT) emits the zero-based `input_N` index used for the current run (manual `select` or random pick).
 
 ### 2. Dynamic Group
 
@@ -34,7 +35,8 @@ Provides advanced nested selection by extracting a specific item from a specific
 * **Double-Layer Selection:** Select which `GROUP` input to access, then target a specific `index` within that group.
 * **Nested Logic:** Perfect for switching between different sets of data (e.g., alternating between different character asset packs).
 * **Type Safety:** The `Type Strict` toggle ensures all connected groups share the same data type. If set, the node will raise an error and interrupt the execution.
-* **Random selection:** With `random_selection` enabled, the node picks a **group** (`input_N`) at run time (optionally weighted via **Weighted Randomizer**), then picks an **item index inside that group uniformly** (not weighted).
+* **Random selection:** With `random_selection` enabled, the node picks a **group** (`input_N`) at run time (optionally weighted via **Weighted Randomizer**), then picks an **item index inside that group uniformly** (not weighted). When random mode is on, `select_group` and `index` widgets are disabled in the UI.
+* **Index outputs:** `group_index` (INT) is the chosen group’s `input_N` index; `index` (INT) is the item index inside that group.
 
 ### 4. Dynamic Combo
 
@@ -43,7 +45,7 @@ A string manipulation node that creates a searchable dropdown (Combo Box) direct
 * **Real-time Updates:** Type a list of items into the text area, and the dropdown menu updates instantly.
 * **Multiple Split Modes:** Parse your list using newlines, commas, semicolons, pipes (`|`), a **custom delimiter**, or **regex**.
 * **Outputs:** Returns the selected string, its zero-based index in the list, and the cleaned-up full list.
-* **Random selection:** Enable `random_selection` to pick a line/item from the parsed list each run. An optional **Weighted Randomizer** biases by **list index** (`0` = first item after splitting).
+* **Random selection:** Enable `random_selection` to pick a line/item from the parsed list each run. An optional **Weighted Randomizer** biases by **list index** (`0` = first item after splitting). When random mode is on, the `choice` combo widget is disabled in the UI.
 
 > [!NOTE]
 > **Dynamic Combo and Weighted Randomizer — current limitations**
@@ -74,6 +76,13 @@ Generates a list of integers from `Start` to `Stop` using a specified `Increment
 
 Iterates through a list of strings provided one per line. ComfyUI fans out the list to execute downstream nodes once per string value.
 
+**Iterator loop cooldown (global):** Configure a single cooldown in **Settings → Wakaura → Iterator**:
+
+* **Iterator loop cooldown (seconds)** — Pause between list steps on **heavy** downstream nodes only (`0` = disabled). Fast prep steps (for example `CLIPTextEncode`) are not paced.
+* **Extra cooldown nodes** — **Search & add nodes…** opens a searchable picker (same node catalog as the graph) to add custom `class_type` values to the allowlist without typos.
+
+Built-in cooldown node types include core samplers (`KSampler`, `KSamplerAdvanced`, `SamplerCustom`, `SamplerCustomAdvanced`), common VAE encode/decode nodes, `ImageUpscaleWithModel`, `LatentUpscale` / `LatentUpscaleBy`, and `SeedVR2VideoUpscaler`. Extras are stored in `ds_settings.json` as `iterator_execution_break_extra_node_types` (comma-separated `class_type` strings). Values sync from the ComfyUI settings UI via `/api/wakaura/dynamic-selector/settings`.
+
 ---
 
 ## Extension settings
@@ -84,9 +93,11 @@ In ComfyUI **Settings → Wakaura**:
 |--------|---------|--------|
 | **Dynamic Selector** | Dynamic socket growth | Grow or compact `input_N` sockets as you connect or disconnect (when disabled, use the context menu only). |
 | **Dynamic Selector** | Auto-collapse empty inputs | When socket growth is on, trim trailing empty slots and keep indices compact. |
+| **Iterator** | Iterator loop cooldown (seconds) | Global pause between iterator list steps on allowlisted heavy nodes (`iterator_execution_break_seconds` in `ds_settings.json`). |
+| **Iterator** | Extra cooldown nodes | Manage extra allowlisted node types via **Search & add nodes…** (`iterator_execution_break_extra_node_types`). |
 | **Weighted Randomizer** | Sync weight count with linked selector | Match weight widget count to linked type/group selector inputs (see limitations for **Dynamic Combo** above). |
 
-Defaults are stored in `ds_settings.json` at the pack root and can be updated from the UI.
+Defaults are stored in `ds_settings.json` at the pack root and can be updated from the UI. The built-in execution-break allowlist is also exposed at `GET /api/wakaura/dynamic-selector/execution-break-defaults`.
 
 ---
 
@@ -144,6 +155,8 @@ Example workflow: [`workflows/example_workflow_randomizer.json`](workflows/examp
 
     ![String Iterator with Prompts](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/iterator_string.png)
 
+* **Cooldown between heavy steps:** With **Iterator loop cooldown** set above `0`, a multi-item iterator run pauses between each list index only on allowlisted nodes (for example between successive `KSampler` calls), which can help thermals/VRAM on long batch graphs without slowing lightweight nodes in between.
+
 > [!NOTE]
 > The iterator example workflows use a new native node called `Text Format`, which is only available in newer versions of ComfyUI (tested: ComfyUI 0.24.1). If you encounter errors when opening these workflows, please update ComfyUI or use alternative nodes to wire the desired connections.
 
@@ -186,8 +199,11 @@ To keep the logic and UI clean, this extension uses:
 
 * `dynamic_selector.py`: Backend logic and node definitions for selectors, groups, combo, and weighted randomizer.
 * `dynamic_iterator.py`: Backend logic and node definitions for iterators.
-* `dynamic_selector.js`: Browser-side logic for dynamic inputs, combo list refresh, group sockets, and weighted randomizer UI.
-* `ds_settings.js` / `ds_settings.json`: ComfyUI settings panel and persisted defaults for socket growth and randomizer sync.
+* `iterator_execution.py`: Runtime hook that applies iterator loop cooldown during list execution on allowlisted node types.
+* `execution_break_config.py`: Built-in cooldown allowlist and reading of `ds_settings.json` cooldown keys.
+* `dynamic_selector.js`: Browser-side logic for dynamic inputs, combo list refresh, group sockets, random-selection widget state, and weighted randomizer UI.
+* `ds_settings.js` / `ds_settings.json`: ComfyUI settings panel and persisted defaults (socket growth, iterator cooldown, randomizer sync).
+* `ds_execution_break_nodes.js`: Searchable **Extra cooldown nodes** picker UI for the Iterator settings section.
 
 ## Usage Tips
 
@@ -200,9 +216,13 @@ To keep the logic and UI clean, this extension uses:
 > [!TIP]
 > **Random selection:** Turn on `random_selection` when you want variety per run without changing the workflow. Use **Weighted Randomizer** when some branches or combo lines should be picked more often than others.
 
+> [!TIP]
+> **Iterator cooldown:** Use a modest cooldown (for example 2–10 seconds) when batching many KSampler or upscale steps from an iterator. Add custom heavy nodes through **Search & add nodes…** if your graph uses non-core node types that should pause between iterations.
+
 ## Compatible Versions and Notices
 
 The nodes are implemented as ComfyUI V3 extension nodes (`ComfyExtension` entrypoint).
 
 * Tested environment: Frontend = v1.37.11, ComfyUI base ≥ 0.12.3 (`requires-comfyui` in `pyproject.toml`).
 * Pack version: 1.3.00 (weighted randomizer, `random_selection`, extension settings API).
+* Pack version: 1.4.00 (Iterator loop cooldown, selector `index` / `group_index` outputs).

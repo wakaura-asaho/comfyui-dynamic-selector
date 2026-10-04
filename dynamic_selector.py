@@ -173,7 +173,11 @@ class DynamicGroupSelector(io.ComfyNode):
                     optional=True,
                 ),
             ],
-            outputs=[SchemaDefineHelper.dynamic_output()],
+            outputs=[
+                SchemaDefineHelper.dynamic_output(),
+                SchemaDefineHelper.group_index_output(),
+                SchemaDefineHelper.index_output(),
+            ],
             accept_all_inputs=True,
         )
 
@@ -321,7 +325,7 @@ class DynamicGroupSelector(io.ComfyNode):
                     f"DynamicGroupSelector: Index {index} is out of bound. The group {select_group} has {count} item(s)."
                 )
 
-        return io.NodeOutput(data[index])
+        return io.NodeOutput(data[index], select_group, index)
 
 
 class DynamicTypeSelector(io.ComfyNode):
@@ -380,7 +384,10 @@ class DynamicTypeSelector(io.ComfyNode):
                     tooltip="Randomly select an item from the inputs."
                 ),
             ],
-            outputs=[SchemaDefineHelper.dynamic_output()],
+            outputs=[
+                SchemaDefineHelper.dynamic_output(),
+                SchemaDefineHelper.index_output(),
+            ],
             accept_all_inputs=True,
         )
 
@@ -491,7 +498,7 @@ class DynamicTypeSelector(io.ComfyNode):
             raise ValueError(
                 f"DynamicTypeSelector: Selected input '{input_key}' is missing or not connected."
             )
-        return io.NodeOutput(val)
+        return io.NodeOutput(val, index)
 
 
 class WeightedRandomizer(io.ComfyNode):
@@ -776,3 +783,43 @@ class SchemaDefineHelper:
     @staticmethod
     def dynamic_output(id: str = "output") -> io.AnyType.Output:
         return io.AnyType.Output(id=id, display_name=id.upper())
+
+    @staticmethod
+    def index_output(id: str = "index") -> io.Int.Output:
+        return io.Int.Output(id=id, display_name="INDEX")
+
+    @staticmethod
+    def group_index_output(id: str = "group_index") -> io.Int.Output:
+        return io.Int.Output(
+            id=id,
+            display_name="GROUP_INDEX",
+            tooltip="Zero-based index of the selected GROUP input (input_N).",
+        )
+
+    @staticmethod
+    def iterator_float_input(
+        id: str,
+        display_name: str,
+        default: float,
+    ) -> io.Float.Input:
+        return io.Float.Input(
+            id=id,
+            display_name=display_name,
+            default=default,
+            min=define.min_itr,
+            max=define.max_itr,
+        )
+
+    @staticmethod
+    def iterator_int_input(
+        id: str,
+        display_name: str,
+        default: int,
+    ) -> io.Int.Input:
+        return io.Int.Input(
+            id=id,
+            display_name=display_name,
+            default=default,
+            min=define.min_itr,
+            max=define.max_itr,
+        )

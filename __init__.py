@@ -7,6 +7,8 @@ from comfy_api.latest import ComfyExtension, io
 from .dynamic_selector import WeightedRandomizer, DynamicGroup, DynamicGroupSelector, DynamicTypeSelector, DynamicCombo
 from .dynamic_iterator import FloatIterator, IntIterator, StringIterator
 from .define import define
+from .execution_break_config import DEFAULT_EXECUTION_BREAK_NODE_TYPES
+from .iterator_execution import install_execution_break_hook
 
 logger = logging.getLogger(define.logger_name)
 
@@ -47,7 +49,14 @@ def _setup_settings_api() -> None:
         from server import PromptServer
 
         settings_path = "/api/wakaura/dynamic-selector/settings"
-        
+        defaults_path = "/api/wakaura/dynamic-selector/execution-break-defaults"
+
+        @PromptServer.instance.routes.get(defaults_path)
+        async def get_execution_break_defaults(_request):
+            return web.json_response(
+                {"default_node_types": sorted(DEFAULT_EXECUTION_BREAK_NODE_TYPES)}
+            )
+
         @PromptServer.instance.routes.get(settings_path)
         async def get_dynamic_selector_settings(request):
             data = _read_settings_json()
@@ -72,3 +81,8 @@ def _setup_settings_api() -> None:
         logger.error(f"Could not register settings API: {exc}")
 
 _setup_settings_api()
+
+try:
+    install_execution_break_hook()
+except Exception as exc:
+    logger.error(f"Could not install iterator execution-break hook: {exc}")

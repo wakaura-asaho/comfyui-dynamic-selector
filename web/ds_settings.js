@@ -1,4 +1,8 @@
 import { app } from "/scripts/app.js";
+import {
+    EXTRA_NODE_TYPES_SETTING_KEY,
+    installExecutionBreakExtraNodesSetting,
+} from "./ds_execution_break_nodes.js";
 
 const CATEGORY = "Wakaura";
 const API = "/api/wakaura/dynamic-selector/settings";
@@ -12,6 +16,10 @@ const WEIGHTED_RANDOMIZER_SETTINGS = [
     ["SyncInputCount", "weighted_randomizer_sync_input_count", "Sync weight count with linked selector"],
 ];
 
+const ITERATOR_SETTINGS = [
+    ["ExecutionBreakSeconds", "iterator_execution_break_seconds", "Iterator loop cooldown (seconds)"],
+];
+
 const DEFAULTS = {
     "Wakaura.DynamicSelector.DynamicSocketGrowth": false,
     "Wakaura.DynamicSelector.AutoCollapseEmptyInputs": true,
@@ -21,12 +29,22 @@ const WEIGHTED_RANDOMIZER_DEFAULTS = {
     "Wakaura.WeightedRandomizer.SyncInputCount": false,
 };
 
+const ITERATOR_DEFAULTS = {
+    "Wakaura.Iterator.ExecutionBreakSeconds": 0,
+};
+
+const EXTRA_NODE_TYPES_UI_ID = "Wakaura.Iterator.ExecutionBreakExtraNodeTypes";
+
 function settingId(suffix) {
     return `Wakaura.DynamicSelector.${suffix}`;
 }
 
 function weightedRandomizerSettingId(suffix) {
     return `Wakaura.WeightedRandomizer.${suffix}`;
+}
+
+function iteratorSettingId(suffix) {
+    return `Wakaura.Iterator.${suffix}`;
 }
 
 function getVal(suffix) {
@@ -53,6 +71,17 @@ function isWeightedRandomizerSyncEnabled() {
     return getWeightedRandomizerVal("SyncInputCount") === true;
 }
 
+function getIteratorVal(suffix) {
+    const id = iteratorSettingId(suffix);
+    const v = app.ui.settings.getSettingValue(id);
+    return v !== undefined ? v : ITERATOR_DEFAULTS[id];
+}
+
+function getIteratorExecutionBreakSeconds() {
+    const v = Number(getIteratorVal("ExecutionBreakSeconds"));
+    return Number.isFinite(v) && v > 0 ? v : 0;
+}
+
 let _syncingFromBackend = false;
 let _pushTimer = null;
 const _changeListeners = new Set();
@@ -75,6 +104,10 @@ async function pushToBackend() {
                 getWeightedRandomizerVal(suffix),
             ]),
         ),
+        ...Object.fromEntries(
+            ITERATOR_SETTINGS.map(([suffix, key]) => [key, getIteratorVal(suffix)]),
+        ),
+        [EXTRA_NODE_TYPES_SETTING_KEY]: app.ui.settings.getSettingValue(EXTRA_NODE_TYPES_UI_ID) ?? "",
     };
     try {
         const res = await fetch(API, {
@@ -124,6 +157,10 @@ function hasStoredUiSettings() {
         || WEIGHTED_RANDOMIZER_SETTINGS.some(
             ([suffix]) => app.ui.settings.getSettingValue(weightedRandomizerSettingId(suffix)) !== undefined,
         )
+        || ITERATOR_SETTINGS.some(
+            ([suffix]) => app.ui.settings.getSettingValue(iteratorSettingId(suffix)) !== undefined,
+        )
+        || app.ui.settings.getSettingValue(EXTRA_NODE_TYPES_UI_ID) !== undefined
     );
 }
 
@@ -140,6 +177,12 @@ async function loadFromBackend() {
         for (const [suffix, key] of WEIGHTED_RANDOMIZER_SETTINGS) {
             if (key in data) s.setSettingValue(weightedRandomizerSettingId(suffix), data[key]);
         }
+        for (const [suffix, key] of ITERATOR_SETTINGS) {
+            if (key in data) s.setSettingValue(iteratorSettingId(suffix), data[key]);
+        }
+        if (EXTRA_NODE_TYPES_SETTING_KEY in data) {
+            s.setSettingValue(EXTRA_NODE_TYPES_UI_ID, data[EXTRA_NODE_TYPES_SETTING_KEY]);
+        }
     } catch (err) {
         console.error("[Wakaura DynamicSelector] Error loading settings:", err);
     } finally {
@@ -153,10 +196,17 @@ function onWeightedRandomizerSettingChange(_newVal, oldVal) {
     notifySettingsChanged();
 }
 
+function onIteratorSettingChange(_newVal, oldVal) {
+    if (oldVal === undefined) return;
+    schedulePushToBackend();
+    notifySettingsChanged();
+}
+
 window.__WakauraDynamicSelector = {
     isDynamicSocketGrowthEnabled,
     isAutoCollapseEmptyInputsEnabled,
     isWeightedRandomizerSyncEnabled,
+    getIteratorExecutionBreakSeconds,
     onSettingsChanged,
 };
 
@@ -183,6 +233,36 @@ app.registerExtension({
             await loadFromBackend();
         }
         syncAutoCollapseControlDisabled();
+    },
+});
+
+app.registerExtension({
+    name: "Wakaura.Iterator.Settings",
+    settings: [
+        {
+            id: iteratorSettingId("ExecutionBreakSeconds"),
+            name: ITERATOR_SETTINGS[0][2],
+            type: "number",
+            default: ITERATOR_DEFAULTS[iteratorSettingId("ExecutionBreakSeconds")],
+            attrs: { min: 0, max: 86400, step: 0.1 },
+            category: [CATEGORY, "Iterator", ITERATOR_SETTINGS[0][2]],
+            tooltip:
+                "Pause between iterator-driven list steps on heavy nodes (KSampler, upscalers, etc.).\n0 disables cooldown.\nApplies only to built-in allowlisted node types plus any extras below.",
+            onChange: (newVal, oldVal) => onIteratorSettingChange(newVal, oldVal),
+        },
+    ],
+    setup() {
+        installExecutionBreakExtraNodesSetting({
+            settingId: EXTRA_NODE_TYPES_UI_ID,
+            getStoredExtra: () => app.ui.settings.getSettingValue(EXTRA_NODE_TYPES_UI_ID) ?? "",
+            setStoredExtra: (serialized) => {
+                app.ui.settings.setSettingValue(EXTRA_NODE_TYPES_UI_ID, serialized);
+            },
+            onPersist: () => {
+                schedulePushToBackend();
+                notifySettingsChanged();
+            },
+        });
     },
 });
 

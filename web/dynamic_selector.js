@@ -1006,7 +1006,13 @@ function validateSelection(widget, node) {
         app.graph.setDirtyCanvas(true);
 }
 
-function updateWidgetAvailability(node, widget, visible, available) {
+function refreshNodeAfterWidgetStateChange(node) {
+    node?.setDirtyCanvas?.(true, true);
+    app.graph?.setDirtyCanvas(true, true);
+    app.canvas?.draw?.(true, true);
+}
+
+function updateWidgetAvailability(node, widget, visible, available, skipCanvasRefresh = false) {
     if (!widget)
         return;
     const enabled = available ?? visible;
@@ -1015,7 +1021,24 @@ function updateWidgetAvailability(node, widget, visible, available) {
     // const input = node.inputs.find(i => i.name === widget.name);
     // input.hidden = !visible;
     // input.disabled = !enabled;
-    app.graph.setDirtyCanvas(true);
+    if (!skipCanvasRefresh)
+        refreshNodeAfterWidgetStateChange(node);
+}
+
+function isRandomSelectionActive(node) {
+    const w = node.widgets?.find((widget) => widget.name === "random_selection");
+    if (!w) return false;
+    return w.value === true || w.value === "true" || w.value === 1;
+}
+
+function bindRandomSelectionCallback(widget, node, updateFn) {
+    if (!widget) return;
+    const original = widget.callback;
+    widget.callback = function () {
+        original?.apply(this, arguments);
+        updateFn(true);
+        refreshNodeAfterWidgetStateChange(node);
+    };
 }
 
 app.registerExtension({
@@ -1066,17 +1089,32 @@ app.registerExtension({
                 };
             }
 
-            function updateBoolWidgtsAvailability() {
-                const useBoolItem = useBoolItemWidget.value;
-                updateWidgetAvailability(node, selectionWidget, true, !useBoolItem);
-                updateWidgetAvailability(node, boolItemWidget, true, useBoolItem);
-                updateWidgetAvailability(node, boolTrueItemIndexWidget, true, useBoolItem);
-                updateWidgetAvailability(node, boolFalseItemIndexWidget, true, useBoolItem);
+            const randomSelectionWidget = this.widgets.find(w => w.name === "random_selection");
+
+            function updateSelectionWidgetsAvailability(skipCanvasRefresh = false) {
+                const skip = true;
+                if (isRandomSelectionActive(node)) {
+                    updateWidgetAvailability(node, selectionWidget, true, false, skip);
+                    updateWidgetAvailability(node, useBoolItemWidget, true, false, skip);
+                    updateWidgetAvailability(node, boolItemWidget, true, false, skip);
+                    updateWidgetAvailability(node, boolTrueItemIndexWidget, true, false, skip);
+                    updateWidgetAvailability(node, boolFalseItemIndexWidget, true, false, skip);
+                } else {
+                    const useBoolItem = useBoolItemWidget.value;
+                    updateWidgetAvailability(node, useBoolItemWidget, true, true, skip);
+                    updateWidgetAvailability(node, selectionWidget, true, !useBoolItem, skip);
+                    updateWidgetAvailability(node, boolItemWidget, true, useBoolItem, skip);
+                    updateWidgetAvailability(node, boolTrueItemIndexWidget, true, useBoolItem, skip);
+                    updateWidgetAvailability(node, boolFalseItemIndexWidget, true, useBoolItem, skip);
+                }
+                if (!skipCanvasRefresh)
+                    refreshNodeAfterWidgetStateChange(node);
             }
 
             // Initial setup
             requestAnimationFrame(() => {
-                updateBoolWidgtsAvailability();
+                updateSelectionWidgetsAvailability();
+                bindRandomSelectionCallback(randomSelectionWidget, node, updateSelectionWidgetsAvailability);
                 if (isDynamicSocketGrowthEnabled()) {
                     syncDynamicSocketGrowth(node, selectionWidgets);
                 }
@@ -1108,10 +1146,8 @@ app.registerExtension({
                     if (originalUseBoolItemCallback) {
                         originalUseBoolItemCallback.apply(this, arguments);
                     }
-                    requestAnimationFrame(() => {
-                        const useBoolItem = useBoolItemWidget.value;
-                        updateBoolWidgtsAvailability();
-                    });
+                    updateSelectionWidgetsAvailability(true);
+                    refreshNodeAfterWidgetStateChange(node);
                 };
 
                 // React to bool item changes
@@ -1395,6 +1431,7 @@ app.registerExtension({
             const listWidget = this.widgets.find(w => w.name === "choice_list");
             const splitModeWidget = this.widgets.find(w => w.name === "split_mode");
             const customDelimiterWidget = this.widgets.find(w => w.name === "custom_delimiter");
+            const randomSelectionWidget = this.widgets.find(w => w.name === "random_selection");
             const anyMissing = !choiceWidget || !listWidget || !splitModeWidget || !customDelimiterWidget;
 
             if (anyMissing)
@@ -1467,10 +1504,24 @@ app.registerExtension({
                 app.graph.setDirtyCanvas(true);
             };
 
+            function updateComboChoiceAvailability(skipCanvasRefresh = false) {
+                updateWidgetAvailability(
+                    node,
+                    choiceWidget,
+                    true,
+                    !isRandomSelectionActive(node),
+                    true,
+                );
+                if (!skipCanvasRefresh)
+                    refreshNodeAfterWidgetStateChange(node);
+            }
+
             // Initial setup
             requestAnimationFrame(() => {
                 const mode = splitModeWidget.value;
                 updateWidgetAvailability(node, customDelimiterWidget, mode === "custom" || mode === "regex");
+                updateComboChoiceAvailability();
+                bindRandomSelectionCallback(randomSelectionWidget, node, updateComboChoiceAvailability);
                 updateCombo();
             })
 
@@ -1680,6 +1731,15 @@ app.registerExtension({
 
             const selectGroupWidget = this.widgets.find(w => w.name === "select_group");
             const indexWidget = this.widgets.find(w => w.name === "index");
+            const randomSelectionWidget = this.widgets.find(w => w.name === "random_selection");
+
+            function updateGroupSelectionWidgetsAvailability(skipCanvasRefresh = false) {
+                const enabled = !isRandomSelectionActive(node);
+                updateWidgetAvailability(node, selectGroupWidget, true, enabled, true);
+                updateWidgetAvailability(node, indexWidget, true, enabled, true);
+                if (!skipCanvasRefresh)
+                    refreshNodeAfterWidgetStateChange(node);
+            }
 
             // Wrap a widget's callback so it re-clamps after every change.
             function wrapClamp(widget) {
@@ -1692,6 +1752,8 @@ app.registerExtension({
             }
 
             requestAnimationFrame(() => {
+                updateGroupSelectionWidgetsAvailability();
+                bindRandomSelectionCallback(randomSelectionWidget, node, updateGroupSelectionWidgetsAvailability);
                 if (isDynamicSocketGrowthEnabled()) {
                     syncDynamicSocketGrowth(
                         node,
