@@ -34,7 +34,7 @@ Provides advanced nested selection by extracting a specific item from a specific
 
 * **Double-Layer Selection:** Select which `GROUP` input to access, then target a specific `index` within that group.
 * **Nested Logic:** Perfect for switching between different sets of data (e.g., alternating between different character asset packs).
-* **Type Safety:** The `Type Strict` toggle ensures all connected groups share the same data type. If set, the node will raise an error and interrupt the execution.
+* **Type Safety:** The `Type Strict` toggle ensures all connected groups share the same data type. If set, the node will raise an error and interrupt execution.
 * **Random selection:** With `random_selection` enabled, the node picks a **group** (`input_N`) at run time (optionally weighted via **Weighted Randomizer**), then picks an **item index inside that group uniformly** (not weighted). When random mode is on, `select_group` and `index` widgets are disabled in the UI.
 * **Index outputs:** `group_index` (INT) is the chosen group’s `input_N` index; `index` (INT) is the item index inside that group.
 
@@ -111,7 +111,7 @@ To add or remove an input from the `DynamicTypeSelector`, use the right-click co
 
 ![Inputs](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/inputs.png)
 
-The first data connected to any of the inputs will determine the types of the rest of the nodes. When the last node is disconnected from the inputs, the type will be reset back to `any`.
+The first data connected to any of the inputs will determine the types of the rest of the nodes. When the last node is disconnected from the inputs, the type will be reset to `any`.
 
 You can also add/remove multiple inputs with the `Batch Add/Remove Inputs`.
 
@@ -155,7 +155,7 @@ Example workflow: [`workflows/example_workflow_randomizer.json`](workflows/examp
 
     ![String Iterator with Prompts](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/iterator_string.png)
 
-* **Cooldown between heavy steps:** With **Iterator loop cooldown** set above `0`, a multi-item iterator run pauses between each list index only on allowlisted nodes (for example between successive `KSampler` calls), which can help thermals/VRAM on long batch graphs without slowing lightweight nodes in between.
+* **Cooldown between heavy steps:** With **Iterator loop cooldown** set above `0`, a multi-item iterator run pauses between each list index only on allowlisted nodes (for example, between successive `KSampler` calls), which can help thermals/VRAM on long batch graphs without slowing lightweight nodes in between.
 
 > [!NOTE]
 > The iterator example workflows use a new native node called `Text Format`, which is only available in newer versions of ComfyUI (tested: ComfyUI 0.24.1). If you encounter errors when opening these workflows, please update ComfyUI or use alternative nodes to wire the desired connections.
@@ -168,6 +168,7 @@ Example workflows in the `workflows` folder:
 | `example_workflow_gs.json` | Dynamic Group and Group Selector |
 | `example_workflow_iterator.json` | Float / string iterators |
 | `example_workflow_randomizer.json` | `random_selection` with Weighted Randomizer |
+| `QwenImage2.1_FacialExpressions` | Use a String Iterator to create 27 facial expressions in one run |
 
 ---
 
@@ -217,7 +218,7 @@ To keep the logic and UI clean, this extension uses:
 > **Random selection:** Turn on `random_selection` when you want variety per run without changing the workflow. Use **Weighted Randomizer** when some branches or combo lines should be picked more often than others.
 
 > [!TIP]
-> **Iterator cooldown:** Use a modest cooldown (for example 2–10 seconds) when batching many KSampler or upscale steps from an iterator. Add custom heavy nodes through **Search & add nodes…** if your graph uses non-core node types that should pause between iterations.
+> **Iterator cooldown:** Use a modest cooldown (for example, 2–10 seconds) when batching many KSampler or upscale steps from an iterator. Add custom heavy nodes through **Search & add nodes…** if your graph uses non-core node types that should pause between iterations.
 
 ## Compatible Versions and Notices
 
