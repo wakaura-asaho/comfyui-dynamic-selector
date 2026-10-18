@@ -76,6 +76,11 @@ Generates a list of integers from `Start` to `Stop` using a specified `Increment
 
 Iterates through a list of strings provided one per line. ComfyUI fans out the list to execute downstream nodes once per string value.
 
+* **Multiple Split Modes:** Parse your list using newlines, commas, semicolons, pipes (`|`), a **custom delimiter**, or **regex**.
+* **Allow Empty Items:** Toggle this on to allow empty items passed through the execution.
+
+![String Iterator](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/iterator_string_updated.png)
+
 **Iterator loop cooldown (global):** Configure a single cooldown in **Settings → Wakaura → Iterator**:
 
 * **Iterator loop cooldown (seconds)** — Pause between list steps on **heavy** downstream nodes only (`0` = disabled). Fast prep steps (for example `CLIPTextEncode`) are not paced.

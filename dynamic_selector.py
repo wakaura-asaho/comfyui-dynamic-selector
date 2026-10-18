@@ -553,10 +553,10 @@ class DynamicCombo(io.ComfyNode):
             description="Create a dynamic combo box from a string list.",
             inputs=[
                 SchemaDefineHelper.weighted_randomizer_input(),
-                io.Combo.Input("choice", options=[]),
-                io.String.Input("choice_list", multiline=True),
+                io.Combo.Input(id="choice", options=[]),
+                io.String.Input(id="choice_list", multiline=True),
                 io.Combo.Input(
-                    "split_mode",
+                    id="split_mode",
                     options=[
                         "newline",
                         "comma",
@@ -569,7 +569,7 @@ class DynamicCombo(io.ComfyNode):
                     tooltip="Choose how to split the string into a combo.",
                 ),
                 io.String.Input(
-                    "custom_delimiter",
+                    id="custom_delimiter",
                     default="|",
                     tooltip="Used when split_mode is 'custom' or 'regex'",
                 ),
@@ -586,7 +586,13 @@ class DynamicCombo(io.ComfyNode):
         )
 
     @staticmethod
-    def _parse_list(choice_list: str, split_mode: str, custom_delimiter: str):
+    def _parse_list(
+        choice_list: str,
+        split_mode: str,
+        custom_delimiter: str,
+        keep_empty: bool = False,
+        strip_items: bool = True,
+    ) -> list[str]:
         if not choice_list:
             return []
         if split_mode == "newline":
@@ -607,7 +613,10 @@ class DynamicCombo(io.ComfyNode):
         else:
             raw = [choice_list]
 
-        return [x.strip() for x in raw if x.strip()]
+        items = [x.strip() for x in raw] if strip_items else list(raw)
+        if keep_empty:
+            return items
+        return [x for x in items if x]
 
     @classmethod
     def fingerprint_inputs(

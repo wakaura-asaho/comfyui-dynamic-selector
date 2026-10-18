@@ -1,6 +1,11 @@
+import logging
+from collections import Counter
+
 from comfy_api.latest import io
 from .define import define
-from .dynamic_selector import SchemaDefineHelper
+from .dynamic_selector import DynamicCombo, SchemaDefineHelper
+
+logger = logging.getLogger(define.logger_name)
 
 
 class FloatIterator(io.ComfyNode):
@@ -135,7 +140,7 @@ class IntIterator(io.ComfyNode):
 
 class StringIterator(io.ComfyNode):
     """
-    Iterate through a list of strings, one per line.
+    Iterate through a list of strings split by a configurable delimiter.
     """
 
     @classmethod
@@ -143,7 +148,7 @@ class StringIterator(io.ComfyNode):
         return io.Schema(
             node_id="StringIterator",
             display_name="String Iterator",
-            description="Iterate through a list of strings, one per line.",
+            description="Iterate through a list of strings split by a configurable delimiter.",
             category=define.author,
             inputs=[
                 io.String.Input(
@@ -151,7 +156,30 @@ class StringIterator(io.ComfyNode):
                     display_name="Items",
                     multiline=True,
                     default="",
-                    tooltip="One string item per line.",
+                    tooltip="String list to split into iterator items.",
+                ),
+                io.Combo.Input(
+                    id="split_mode",
+                    options=[
+                        "newline",
+                        "comma",
+                        "semicolon",
+                        "pipe",
+                        "custom",
+                        "regex",
+                    ],
+                    default="newline",
+                    tooltip="Choose how to split the string into items.",
+                ),
+                io.String.Input(
+                    id="custom_delimiter",
+                    default="|",
+                    tooltip="Used when split_mode is 'custom' or 'regex'",
+                ),
+                io.Boolean.Input(
+                    id="allow_empty_items",
+                    default=False,
+                    tooltip="Include empty strings in the output list after splitting.",
                 ),
             ],
             outputs=[
@@ -164,13 +192,62 @@ class StringIterator(io.ComfyNode):
             accept_all_inputs=True,
         )
 
+    @staticmethod
+    def _warn_duplicate_items(values: list[str]) -> None:
+        for item, count in Counter(values).items():
+            if count >= 2:
+                logger.warning(
+                    "String Iterator: item %r appears %d times.",
+                    item,
+                    count,
+                )
+
     @classmethod
-    def validate_inputs(cls, items: str, **kwargs) -> bool | str:
+    def validate_inputs(
+        cls,
+        items: str,
+        split_mode: str = "newline",
+        custom_delimiter: str = "|",
+        allow_empty_items: bool = False,
+        **kwargs,
+    ) -> bool | str:
         if not items or not items.strip():
             return "Items must not be empty."
+        all_items = DynamicCombo._parse_list(
+            items,
+            split_mode,
+            custom_delimiter,
+            keep_empty=True,
+            strip_items=False,
+        )
+        if not all_items:
+            return "Items must produce at least one string after splitting."
+        if not allow_empty_items and any(not s for s in all_items):
+            return (
+                "Items contain empty entries. Enable Allow Empty Items or remove them."
+            )
+        parsed = (
+            all_items
+            if allow_empty_items
+            else [s for s in all_items if s]
+        )
+        cls._warn_duplicate_items(parsed)
         return True
 
     @classmethod
-    def execute(cls, items: str, **kwargs) -> io.NodeOutput:
-        values = [line for line in items.splitlines() if line.strip()]
+    def execute(
+        cls,
+        items: str,
+        split_mode: str = "newline",
+        custom_delimiter: str = "|",
+        allow_empty_items: bool = False,
+        **kwargs,
+    ) -> io.NodeOutput:
+        values = DynamicCombo._parse_list(
+            items,
+            split_mode,
+            custom_delimiter,
+            keep_empty=allow_empty_items,
+            strip_items=False,
+        )
         return io.NodeOutput(values)

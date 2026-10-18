@@ -1025,6 +1025,13 @@ function updateWidgetAvailability(node, widget, visible, available, skipCanvasRe
         refreshNodeAfterWidgetStateChange(node);
 }
 
+function syncCustomDelimiterVisibility(node, splitModeWidget, customDelimiterWidget) {
+    if (!splitModeWidget || !customDelimiterWidget)
+        return;
+    const mode = splitModeWidget.value;
+    updateWidgetAvailability(node, customDelimiterWidget, mode === "custom" || mode === "regex");
+}
+
 function isRandomSelectionActive(node) {
     const w = node.widgets?.find((widget) => widget.name === "random_selection");
     if (!w) return false;
@@ -1415,6 +1422,108 @@ app.registerExtension({
     },
 });
 
+function getWidgetValueStore() {
+    try {
+        const pinia = document.getElementById("vue-app")?.__vue_app__?.config?.globalProperties?.$pinia;
+        return pinia?._s?.get("widgetValue");
+    } catch {
+        return null;
+    }
+}
+
+function resolveSubgraphInputTargetForPromote(hostNode, inputName) {
+    if (!hostNode.isSubgraphNode?.() || !hostNode.subgraph?.inputNode?.slots)
+        return;
+    const inputSlot = hostNode.subgraph.inputNode.slots.find((s) => s.name === inputName);
+    if (!inputSlot)
+        return;
+    for (const linkId of inputSlot.linkIds ?? []) {
+        const link = hostNode.subgraph.getLink(linkId);
+        if (!link)
+            continue;
+        const { inputNode, input: targetInput } = link.resolve(hostNode.subgraph);
+        if (!inputNode || !targetInput)
+            continue;
+        if (inputNode.isSubgraphNode?.()) {
+            return { nodeId: inputNode.id, widgetName: targetInput.name };
+        }
+        const targetWidget = inputNode.getWidgetFromSlot?.(targetInput);
+        if (targetWidget) {
+            return { nodeId: inputNode.id, widgetName: targetWidget.name };
+        }
+    }
+}
+
+function resolveConcretePromotedChoiceWidget(hostNode, nodeId, widgetName) {
+    let currentHost = hostNode;
+    let currentNodeId = nodeId;
+    let currentWidgetName = widgetName;
+    for (let depth = 0; depth < 100; depth++) {
+        const sourceNode = currentHost.subgraph?.getNodeById?.(currentNodeId);
+        if (!sourceNode)
+            return null;
+        if (sourceNode.isSubgraphNode?.()) {
+            const target = resolveSubgraphInputTargetForPromote(sourceNode, currentWidgetName);
+            if (!target)
+                return null;
+            currentHost = sourceNode;
+            currentNodeId = target.nodeId;
+            currentWidgetName = target.widgetName;
+            continue;
+        }
+        return sourceNode.widgets?.find((w) => w.name === currentWidgetName) ?? null;
+    }
+    return null;
+}
+
+function visitGraphNodes(graph, fn) {
+    if (!graph?._nodes)
+        return;
+    for (const node of graph._nodes) {
+        if (node.isSubgraphNode?.() && node.subgraph)
+            visitGraphNodes(node.subgraph, fn);
+        fn(node);
+    }
+}
+
+function syncPromotedChoiceComboHostOptions(choiceWidget) {
+    const rootGraph = app.rootGraph ?? app.graph;
+    const widgetValueStore = getWidgetValueStore();
+    if (!rootGraph || !widgetValueStore || choiceWidget?.type !== "combo")
+        return;
+
+    visitGraphNodes(rootGraph, (hostNode) => {
+        if (!hostNode.isSubgraphNode?.())
+            return;
+        for (const input of hostNode.inputs ?? []) {
+            if (!input.widgetId)
+                continue;
+            const source = resolveSubgraphInputTargetForPromote(hostNode, input.name);
+            if (!source)
+                continue;
+            const resolvedWidget = resolveConcretePromotedChoiceWidget(
+                hostNode,
+                source.nodeId,
+                source.widgetName,
+            );
+            if (resolvedWidget !== choiceWidget)
+                continue;
+
+            const state = widgetValueStore.getWidget(input.widgetId);
+            if (!state)
+                continue;
+
+            state.options = { ...(choiceWidget.options ?? {}) };
+            const values = choiceWidget.options?.values;
+            if (Array.isArray(values) && !values.includes(state.value)) {
+                const nextValue = values[0] ?? "";
+                state.value = nextValue;
+                widgetValueStore.setValue?.(input.widgetId, nextValue);
+            }
+        }
+    });
+}
+
 app.registerExtension({
     name: "Wakaura.DynamicCombo",
 
@@ -1501,6 +1610,7 @@ app.registerExtension({
                 }
 
                 choiceWidget.callback?.(choiceWidget.value);
+                syncPromotedChoiceComboHostOptions(choiceWidget);
                 app.graph.setDirtyCanvas(true);
             };
 
@@ -1518,8 +1628,7 @@ app.registerExtension({
 
             // Initial setup
             requestAnimationFrame(() => {
-                const mode = splitModeWidget.value;
-                updateWidgetAvailability(node, customDelimiterWidget, mode === "custom" || mode === "regex");
+                syncCustomDelimiterVisibility(node, splitModeWidget, customDelimiterWidget);
                 updateComboChoiceAvailability();
                 bindRandomSelectionCallback(randomSelectionWidget, node, updateComboChoiceAvailability);
                 updateCombo();
@@ -1540,8 +1649,7 @@ app.registerExtension({
                 if (originalSplitCallback) {
                     originalSplitCallback.apply(this, arguments);
                 }
-                const mode = splitModeWidget.value;
-                updateWidgetAvailability(node, customDelimiterWidget, mode === "custom" || mode === "regex");
+                syncCustomDelimiterVisibility(node, splitModeWidget, customDelimiterWidget);
                 requestAnimationFrame(() => {
                     updateCombo();
                 });
