@@ -4,7 +4,7 @@ import pathlib
 import folder_paths
 import logging
 from comfy_api.latest import ComfyExtension, io
-from .dynamic_selector import WeightedRandomizer, DynamicGroup, DynamicGroupSelector, DynamicTypeSelector, DynamicCombo
+from .dynamic_selector import WeightedRandomizer, DynamicGroup, DynamicGroupSelector, DynamicTypeSelector, DynamicCombo, DynamicDictionary
 from .dynamic_iterator import FloatIterator, IntIterator, StringIterator
 from .define import define
 from .execution_break_config import DEFAULT_EXECUTION_BREAK_NODE_TYPES
@@ -27,7 +27,8 @@ class DynamicSelectorExtension(ComfyExtension):
             DynamicGroup,
             DynamicGroupSelector,
             DynamicTypeSelector,
-            DynamicCombo
+            DynamicCombo,
+            DynamicDictionary
         ]
 
 async def comfy_entrypoint() -> DynamicSelectorExtension:

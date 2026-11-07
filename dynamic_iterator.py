@@ -3,7 +3,8 @@ from collections import Counter
 
 from comfy_api.latest import io
 from .define import define
-from .dynamic_selector import DynamicCombo, SchemaDefineHelper
+from .dynamic_selector import DynamicCombo
+from .schema_define_helper import SchemaDefineHelper
 
 logger = logging.getLogger(define.logger_name)
 
@@ -158,24 +159,10 @@ class StringIterator(io.ComfyNode):
                     default="",
                     tooltip="String list to split into iterator items.",
                 ),
-                io.Combo.Input(
-                    id="split_mode",
-                    options=[
-                        "newline",
-                        "comma",
-                        "semicolon",
-                        "pipe",
-                        "custom",
-                        "regex",
-                    ],
-                    default="newline",
-                    tooltip="Choose how to split the string into items.",
+                SchemaDefineHelper.split_mode_input(
+                    tooltip="Choose how to split the string into items."
                 ),
-                io.String.Input(
-                    id="custom_delimiter",
-                    default="|",
-                    tooltip="Used when split_mode is 'custom' or 'regex'",
-                ),
+                SchemaDefineHelper.custom_delimiter_input(),
                 io.Boolean.Input(
                     id="allow_empty_items",
                     default=False,

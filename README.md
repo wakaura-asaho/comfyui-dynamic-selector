@@ -20,7 +20,23 @@ An advanced "Switch" or "Router" node that can handle **any** data type (Images,
 * **Random selection:** Enable `random_selection` to pick a connected `input_N` at run time. Connect an optional **Weighted Randomizer** to bias which index is chosen (see below). With no randomizer connected, every non-empty candidate index has equal chance. When random mode is on, manual selection widgets (`select`, boolean index widgets) are disabled in the UI.
 * **Index output:** `index` (INT) emits the zero-based `input_N` index used for the current run (manual `select` or random pick).
 
-### 2. Dynamic Group
+### 2. Dynamic Dictionary
+
+Maps each dynamic branch to a **string key** and outputs the value for the chosen key (plus the resolved key name). Same dynamic `input_0`, `input_1`, … slots as **Dynamic Type Selector** (shown as `0`, `1`, …), with matching key string widgets you can rename; if a key is left blank, it falls back to `key_N`.
+
+* **Selection:** Use the `selection` combo to pick by key. You can also drive the choice with `use_bool_item`, `bool_item`, `item_true`, and `item_false` (the boolean branch picks keys instead of the main `selection`).
+* **Outputs:** `OUTPUT` passes the selected input’s value; `KEY` (STRING) emits the resolved key string for that branch.
+* **Smart type matching:** The output type follows connected inputs (wildcard when disconnected, aligned with the first connected branch once wired), same idea as the type selector.
+* **Random selection:** Enable `random_selection` to pick among **connected** input `N` indices at run time; connect **Weighted Randomizer** to bias by index. With random mode on, manual key widgets (`selection`, boolean key widgets) are disabled in the UI.
+* **Type strict:** Enable `type_strict` to raise an error if connected input `N` values use different Comfy types. If input `0` is connected and switched to type strict, the mis-matched items will be disconnected immediately.
+* **Dynamic scaling:** Add or remove entries via the context menu (including batch add/remove), up to the same cap as other dynamic-input nodes.
+
+> [!NOTE]
+> **Known issue:** With the graph set to **Modern Node Design (Nodes 2.0)**, the per-slot **key** fields (`key_0`, `key_1`, …) may not render visibly. Use the classic node design to edit keys until this is addressed in the frontend.
+> **Mixing types:** When switching between different types of inputs, the output type changes dynamically; if the switched output does not match the expected input from the downstream node, the link will be disconnected.
+> **Same key names:** If more than one items share the same key name, only the first matching item in the list will be picked; using a unique key name is recommended.
+
+### 3. Dynamic Group
 
 Packs multiple inputs of the same type into a unified `GROUP` object, allowing you to manage collections of data as a single stream.
 
@@ -28,7 +44,7 @@ Packs multiple inputs of the same type into a unified `GROUP` object, allowing y
 * **Type Preservation:** Automatically detects and maintains the underlying data type of the grouped items.
 * **Dynamic Scaling:** Add or remove input slots dynamically via the context menu.
 
-### 3. Dynamic Group Selector
+### 4. Dynamic Group Selector
 
 Provides advanced nested selection by extracting a specific item from a specific group. This allows for deeper logic control compared to the standard Dynamic Type Selector.
 
@@ -38,7 +54,7 @@ Provides advanced nested selection by extracting a specific item from a specific
 * **Random selection:** With `random_selection` enabled, the node picks a **group** (`input_N`) at run time (optionally weighted via **Weighted Randomizer**), then picks an **item index inside that group uniformly** (not weighted). When random mode is on, `select_group` and `index` widgets are disabled in the UI.
 * **Index outputs:** `group_index` (INT) is the chosen group’s `input_N` index; `index` (INT) is the item index inside that group.
 
-### 4. Dynamic Combo
+### 5. Dynamic Combo
 
 A string manipulation node that creates a searchable dropdown (Combo Box) directly from a text list.
 
@@ -53,26 +69,26 @@ A string manipulation node that creates a searchable dropdown (Combo Box) direct
 > * For weighted combo random, add enough weight widgets on the randomizer yourself so indices `0 … N-1` match your parsed options. Extra weight widgets beyond the list length are ignored; missing indices behave as weight `1` when that index is still eligible.
 > * Changing `choice_list` or `split_mode` changes option count without updating the randomizer — recheck weights after edits.
 
-### 5. Weighted Randomizer
+### 6. Weighted Randomizer
 
 Supplies integer weights to selector nodes for biased random picks.
 
 * **Dynamic weight widgets:** `input_0`, `input_1`, … (same naming as selector inputs), added/removed from the node context menu or batch dialog.
-* **Output:** Connect `weighted_randomizer` (`W_RANDOMIZER`) to **Dynamic Type Selector**, **Dynamic Group Selector**, or **Dynamic Combo**.
+* **Output:** Connect `weighted_randomizer` (`W_RANDOMIZER`) to **Dynamic Type Selector**, **Dynamic Group Selector**, **Dynamic Combo**, or **Dynamic Dictionary**.
 * **Sync with selectors:** In ComfyUI **Settings → Wakaura → Weighted Randomizer**, enable **Sync weight count with linked selector** so the randomizer’s widget count tracks the maximum `input_N` count across linked type/group selectors (manual add/remove menus are hidden while sync is on).
 
-### 6. Float Iterator
+### 7. Float Iterator
 
 Generates a list of float values from `Start` to `Stop` using a specified `Increment`. ComfyUI fans out the returned list, executing connected downstream nodes once per value.
 
 * **Direction Validation:** Prevents infinite loops by ensuring the increment direction aligns with the start and stop bounds.
 * **Precision Guard:** Uses decimal rounding to suppress floating-point drift.
 
-### 7. Int Iterator
+### 8. Int Iterator
 
 Generates a list of integers from `Start` to `Stop` using a specified `Increment`. ComfyUI fans out the list to execute downstream nodes once per value.
 
-### 8. String Iterator
+### 9. String Iterator
 
 Iterates through a list of strings provided one per line. ComfyUI fans out the list to execute downstream nodes once per string value.
 
@@ -137,6 +153,12 @@ You can then use the Group Selector to extract the data from the group and pass 
 If `Type Strict` is set to `True`, the node will check if the data type stored in each group is the same; if not the same, an error is raised.
 
 ![Group_Selection](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/grouped_selection_type_check.png)
+
+### Dynamic Dictionary
+
+Several images feed **Dynamic Dictionary** with distinct keys (for example character names); choosing `selection` passes that image on `OUTPUT` and echoes the key on `KEY` (here wired to **Preview Image** and **Preview as Text**).
+
+![Dynamic Dictionary](https://github.com/wakaura-asaho/comfyui-dynamic-selector/blob/main/docs/dictionary.png)
 
 ### Randomized selection
 
@@ -203,11 +225,12 @@ git clone https://github.com/wakaura-asaho/comfyui-dynamic-selector.git
 
 To keep the logic and UI clean, this extension uses:
 
-* `dynamic_selector.py`: Backend logic and node definitions for selectors, groups, combo, and weighted randomizer.
+* `dynamic_selector.py`: Backend logic and node definitions for selectors, groups, combo, dictionary, and weighted randomizer.
+* `schema_define_helper.py`: Shared schema helpers (dynamic inputs, keys, weights) for node definitions.
 * `dynamic_iterator.py`: Backend logic and node definitions for iterators.
 * `iterator_execution.py`: Runtime hook that applies iterator loop cooldown during list execution on allowlisted node types.
 * `execution_break_config.py`: Built-in cooldown allowlist and reading of `ds_settings.json` cooldown keys.
-* `dynamic_selector.js`: Browser-side logic for dynamic inputs, combo list refresh, group sockets, random-selection widget state, and weighted randomizer UI.
+* `dynamic_selector.js`: Browser-side logic for dynamic inputs, combo list refresh, group and dictionary sockets, random-selection widget state, and weighted randomizer UI.
 * `ds_settings.js` / `ds_settings.json`: ComfyUI settings panel and persisted defaults (socket growth, iterator cooldown, randomizer sync).
 * `ds_execution_break_nodes.js`: Searchable **Extra cooldown nodes** picker UI for the Iterator settings section.
 
