@@ -1,5 +1,5 @@
 import { app } from "/scripts/app.js";
-import { $el } from "/scripts/ui.js";
+const { $el } = window.comfyAPI.ui;
 
 export const EXTRA_NODE_TYPES_SETTING_KEY = "iterator_execution_break_extra_node_types";
 
