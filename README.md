@@ -32,7 +32,7 @@ Maps each dynamic branch to a **string key** and outputs the value for the chose
 * **Dynamic scaling:** Add or remove entries via the context menu (including batch add/remove), up to the same cap as other dynamic-input nodes.
 
 > [!NOTE]
-> **Known issue:** With the graph set to **Modern Node Design (Nodes 2.0)**, the per-slot **key** fields (`key_0`, `key_1`, …) may not render visibly. Use the classic node design to edit keys until this is addressed in the frontend.
+> **Nodes 2.0:** Per-slot keys are editable text widgets (`key_0`, `key_1`, …) in the node body. Classic node design still draws those keys beside each input socket.
 > **Mixing types:** When switching between different types of inputs, the output type changes dynamically; if the switched output does not match the expected input from the downstream node, the link will be disconnected.
 > **Same key names:** If more than one items share the same key name, only the first matching item in the list will be picked; using a unique key name is recommended.
 
@@ -230,7 +230,8 @@ To keep the logic and UI clean, this extension uses:
 * `dynamic_iterator.py`: Backend logic and node definitions for iterators.
 * `iterator_execution.py`: Runtime hook that applies iterator loop cooldown during list execution on allowlisted node types.
 * `execution_break_config.py`: Built-in cooldown allowlist and reading of `ds_settings.json` cooldown keys.
-* `dynamic_selector.js`: Browser-side logic for dynamic inputs, combo list refresh, group and dictionary sockets, random-selection widget state, and weighted randomizer UI.
+* `web/ds_common.js`: Shared browser helpers (dynamic sockets, batch dialog, widget state, weighted-randomizer sync).
+* `web/dynamic_type_selector.js`, `dynamic_group.js`, `dynamic_group_selector.js`, `dynamic_dictionary.js`, `dynamic_combo.js`, `weighted_randomizer.js`: Per-node UI.
 * `ds_settings.js` / `ds_settings.json`: ComfyUI settings panel and persisted defaults (socket growth, iterator cooldown, randomizer sync).
 * `ds_execution_break_nodes.js`: Searchable **Extra cooldown nodes** picker UI for the Iterator settings section.
 
